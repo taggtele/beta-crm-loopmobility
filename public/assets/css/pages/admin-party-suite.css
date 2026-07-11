@@ -1,0 +1,585 @@
+/**
+ * Party Management + Party AM Mapping — enterprise admin UI
+ * Scoped under .apd (admin party directory)
+ */
+
+/* ------------------------------------------------------------------------- */
+/* Shell & typography                                                        */
+/* ------------------------------------------------------------------------- */
+
+.apd-req {
+    color: var(--danger);
+    font-weight: 700;
+}
+
+.apd-field-hint {
+    display: block;
+    margin-top: 4px;
+    font-size: 0.75rem;
+    color: var(--muted);
+}
+
+.apd {
+    --apd-radius: 10px;
+    --apd-row: 34px;
+    --apd-font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 14px;
+    line-height: 1.45;
+    color: var(--text);
+}
+
+.apd .apd-page-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px 20px;
+    margin-bottom: 14px;
+}
+
+.apd .apd-page-head h2 {
+    margin: 0 0 4px;
+    font-size: 1.15rem;
+    font-weight: 650;
+    letter-spacing: -0.02em;
+}
+
+.apd .apd-page-head p {
+    margin: 0;
+    max-width: 52ch;
+    color: var(--muted);
+    font-size: 0.8125rem;
+}
+
+.apd .apd-page-head__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+}
+
+/* ------------------------------------------------------------------------- */
+/* Stats strip (compact)                                                     */
+/* ------------------------------------------------------------------------- */
+
+.apd-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 10px;
+    margin-bottom: 14px;
+}
+
+.apd-stat {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--apd-radius);
+    padding: 10px 12px;
+    box-shadow: var(--shadow-sm);
+}
+
+.apd-stat__label {
+    display: block;
+    font-size: 0.65rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+    margin-bottom: 2px;
+}
+
+.apd-stat__value {
+    font-size: 1.35rem;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+}
+
+.apd-stat__hint {
+    font-size: 0.7rem;
+    color: var(--muted);
+    margin-top: 2px;
+}
+
+/* ------------------------------------------------------------------------- */
+/* Compact filter bar                                                        */
+/* ------------------------------------------------------------------------- */
+
+.apd-filter-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 10px 12px;
+    padding: 10px 12px;
+    margin-bottom: 12px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--apd-radius);
+    box-shadow: var(--shadow-sm);
+}
+
+.apd-filter-bar .input-group {
+    margin: 0;
+    flex: 1 1 180px;
+    min-width: 0;
+}
+
+.apd-filter-bar .input-group label {
+    font-size: 0.65rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--muted);
+    margin-bottom: 4px;
+}
+
+.apd-filter-bar .input-group input,
+.apd-filter-bar .input-group select {
+    min-height: 34px;
+    padding: 6px 10px;
+    font-size: 0.8125rem;
+    border-radius: 8px;
+}
+
+.apd-filter-bar__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    flex: 0 0 auto;
+    margin-left: auto;
+}
+
+.apd-filter-bar__actions .btn {
+    min-height: 34px;
+    padding: 6px 12px;
+    font-size: 0.8125rem;
+}
+
+/* ------------------------------------------------------------------------- */
+/* Form workspace (two-up cards)                                             */
+/* ------------------------------------------------------------------------- */
+
+.apd-forms {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+    gap: 12px;
+    margin-bottom: 14px;
+}
+
+.apd-forms .form-card {
+    margin: 0;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--apd-radius);
+    box-shadow: var(--shadow-sm);
+}
+
+.apd-forms .info-strip {
+    padding: 10px 12px;
+}
+
+.apd-forms .info-strip strong {
+    font-size: 0.8125rem;
+}
+
+.apd-forms .info-strip p {
+    font-size: 0.75rem;
+    margin: 4px 0 0;
+    color: var(--muted);
+}
+
+.apd-forms .form-grid {
+    display: grid;
+    gap: 10px 12px;
+    padding: 0 12px 12px;
+}
+
+.apd-forms .input-group {
+    display: block;
+}
+
+.apd-forms .form-actions {
+    padding: 0 12px 12px;
+    margin: 0;
+}
+
+.apd-forms .input-group label {
+    font-size: 0.7rem;
+    font-weight: 600;
+}
+
+.apd-forms .input-group input,
+.apd-forms .input-group select,
+.apd-forms .input-group textarea {
+    min-height: 36px;
+    font-size: 0.8125rem;
+}
+
+.apd-cc-emails-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.apd-cc-email-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+}
+
+.apd-cc-email-row .apd-cc-email-input {
+    flex: 1 1 200px;
+    min-width: 0;
+    min-height: 36px;
+    font-size: 0.8125rem;
+}
+
+/* Mapping: visual grouping for Party vs routing */
+.apd-mapping-split {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+}
+
+@media (min-width: 900px) {
+    .apd-mapping-split {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+.apd-fieldset {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    background: var(--panel-soft);
+}
+
+.apd-fieldset legend {
+    padding: 0 6px;
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--muted-strong);
+}
+
+/* Party typeahead (mapping page) */
+.apd .mapping-party-typeahead {
+    position: relative;
+}
+
+.apd .mapping-party-dropdown {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 100%;
+    z-index: 40;
+    max-height: 240px;
+    overflow-y: auto;
+    margin-top: 4px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    box-shadow: var(--shadow-md);
+}
+
+.apd .mapping-party-dropdown button {
+    display: block;
+    width: 100%;
+    text-align: left;
+    padding: 8px 12px;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+    font: inherit;
+    color: inherit;
+}
+
+.apd .mapping-party-dropdown button:hover,
+.apd .mapping-party-dropdown button:focus {
+    background: var(--panel-soft);
+    outline: none;
+}
+
+.apd .mapping-party-dropdown__meta {
+    display: block;
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 2px;
+    font-family: var(--apd-font-mono);
+}
+
+/* ------------------------------------------------------------------------- */
+/* Table shell — sticky header, dense rows                                   */
+/* ------------------------------------------------------------------------- */
+
+.apd-table-card {
+    margin-top: 12px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--apd-radius);
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+}
+
+.apd-table-card__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px 16px;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+    background: var(--panel-muted);
+}
+
+.apd-table-card__head h2 {
+    margin: 0;
+    font-size: 0.9rem;
+    font-weight: 650;
+}
+
+.apd-table-card__head p {
+    margin: 0;
+    font-size: 0.75rem;
+    color: var(--muted);
+}
+
+.apd-table-scroll {
+    max-height: min(62vh, 640px);
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.apd-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8125rem;
+}
+
+.apd-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    padding: 8px 10px;
+    text-align: left;
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted-strong);
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    box-shadow: 0 1px 0 var(--border);
+    white-space: nowrap;
+}
+
+.apd-table tbody td {
+    padding: 7px 10px;
+    vertical-align: middle;
+    border-bottom: 1px solid var(--border);
+}
+
+.apd-table tbody tr:hover td {
+    background: var(--primary-soft);
+}
+
+html.theme-dark .apd-table tbody tr:hover td {
+    background: rgba(96, 165, 250, 0.08);
+}
+
+.apd-table .apd-td-muted {
+    color: var(--muted);
+    font-size: 0.75rem;
+}
+
+.apd-table .apd-title {
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1.25;
+}
+
+.apd-table .apd-mono {
+    font-family: var(--apd-font-mono);
+    font-size: 0.78rem;
+}
+
+/* Routing column (AM / BM) */
+.apd-route-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.apd-route-line {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    min-height: 1.25em;
+}
+
+.apd-route-tag {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 28px;
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 0.6rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    line-height: 1.4;
+}
+
+.apd-route-tag--am {
+    background: var(--open-soft);
+    color: var(--open);
+}
+
+.apd-route-tag--bm {
+    background: var(--panel-muted);
+    color: var(--muted-strong);
+    border: 1px solid var(--border);
+}
+
+.apd-route-line__body {
+    flex: 1;
+    min-width: 0;
+}
+
+.apd-actions {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.apd-actions .btn {
+    padding: 4px 10px;
+    font-size: 0.75rem;
+    min-height: 28px;
+    white-space: nowrap;
+}
+
+/* Override global .inline-form (column + min-width) so Edit + Delete stay on one row, vertically centered */
+.apd-actions form.inline-form {
+    display: inline-flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    min-width: 0;
+    width: auto;
+    margin: 0;
+    vertical-align: middle;
+}
+
+.apd-table tbody td:last-child {
+    vertical-align: middle;
+    text-align: right;
+}
+
+.apd-table tbody td:last-child .apd-actions {
+    width: 100%;
+    justify-content: flex-end;
+}
+
+/* Party row — inline update */
+.apd-party-update {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+}
+
+.apd-party-update input[type="text"] {
+    min-width: 120px;
+    flex: 1 1 140px;
+    max-width: 220px;
+    min-height: 30px;
+    padding: 4px 8px;
+    font-size: 0.8125rem;
+    border-radius: 6px;
+}
+
+.apd-party-update select {
+    min-height: 30px;
+    padding: 4px 8px;
+    font-size: 0.75rem;
+    border-radius: 6px;
+}
+
+/* Email list in party table */
+.apd-email-preview {
+    max-width: 360px;
+    color: var(--muted-strong);
+    font-size: 0.78rem;
+    line-height: 1.35;
+    word-break: break-word;
+}
+
+.apd-empty {
+    text-align: center;
+    padding: 28px 16px !important;
+    color: var(--muted);
+    font-size: 0.875rem;
+}
+
+/* Collapsible more filters (optional drawer) */
+.apd-filter-toggle {
+    display: none;
+}
+
+@media (max-width: 720px) {
+    .apd-filter-bar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .apd-filter-bar__actions {
+        margin-left: 0;
+        justify-content: stretch;
+    }
+
+    .apd-filter-bar__actions .btn {
+        flex: 1;
+    }
+}
+
+.apd-readonly-banner {
+    margin-bottom: 12px;
+}
+
+.apd--readonly .apd-forms {
+    display: none;
+}
+
+.apd-search-loading {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 14px;
+    color: var(--primary);
+    animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 0.4; }
+    50% { opacity: 1; }
+}
+
+.apd-filter-bar .input-group {
+    position: relative;
+}
+
+.apd-filter-bar .input-group input {
+    padding-right: 24px;
+}

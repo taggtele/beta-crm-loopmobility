@@ -1,0 +1,189 @@
+.ticket-party-combo-group .ticket-party-combobox-input-row {
+    position: relative;
+}
+
+.ticket-party-combobox-results {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: calc(100% + 4px);
+    z-index: 50;
+    margin: 0;
+    padding: 4px 0;
+    list-style: none;
+    max-height: 220px;
+    overflow: auto;
+    background: var(--panel, #fff);
+    border: 1px solid var(--border, #e5e7eb);
+    border-radius: 8px;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.12);
+}
+
+.theme-dark .ticket-party-combobox-results {
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+}
+
+.ticket-party-combobox-results li {
+    padding: 8px 12px;
+    cursor: pointer;
+    font-size: 13px;
+    line-height: 1.35;
+}
+
+.ticket-party-combobox-results li:hover,
+.ticket-party-combobox-results li[aria-selected="true"] {
+    background: var(--primary-soft, #dbeafe);
+    color: var(--primary, #1d4ed8);
+}
+
+.ticket-party-combobox-results .party-search-meta {
+    display: block;
+    font-size: 12px;
+    color: var(--muted, #6b7280);
+    margin-top: 2px;
+}
+
+.ticket-modal .ticket-party-combobox-results {
+    z-index: 1200;
+}
+
+.ticket-customer-email-group .ticket-ack-mail-control {
+    margin-top: 6px;
+}
+
+.ticket-ack-mail-control-head {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.ticket-ack-mail-control-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--muted-strong, #4b5563);
+    line-height: 1.2;
+    white-space: nowrap;
+}
+
+.ticket-ack-info-btn {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    margin: 0;
+    padding: 0;
+    border: 1px solid color-mix(in srgb, var(--primary) 18%, var(--border));
+    border-radius: 50%;
+    background: var(--panel-soft);
+    color: var(--muted-strong, #4b5563);
+    font-size: 10px;
+    font-weight: 800;
+    line-height: 1;
+    cursor: help;
+    flex-shrink: 0;
+}
+
+.ticket-ack-info-btn[data-tooltip]:after {
+    content: attr(data-tooltip);
+    position: absolute;
+    left: 50%;
+    bottom: calc(100% + 8px);
+    transform: translateX(-50%);
+    width: max-content;
+    max-width: min(260px, calc(100vw - 32px));
+    padding: 8px 10px;
+    border-radius: 8px;
+    background: rgba(15, 23, 42, 0.96);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 500;
+    line-height: 1.35;
+    text-align: left;
+    white-space: normal;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+    z-index: 1300;
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.2);
+}
+
+.ticket-ack-info-btn[data-tooltip]:hover:after,
+.ticket-ack-info-btn[data-tooltip]:focus-visible:after {
+    opacity: 1;
+}
+
+.ticket-ack-info-btn:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 1px;
+}
+
+.ticket-ack-mail-toggle {
+    display: inline-flex;
+    margin-left: auto;
+    border-radius: 7px;
+    padding: 2px;
+    background: color-mix(in srgb, var(--primary) 6%, var(--panel-soft));
+    border: 1px solid color-mix(in srgb, var(--primary) 12%, var(--border));
+    flex-shrink: 0;
+}
+
+.ticket-ack-mail-toggle-option {
+    margin: 0;
+    cursor: pointer;
+}
+
+.ticket-ack-mail-toggle-option input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.ticket-ack-mail-toggle-option span {
+    display: inline-block;
+    min-width: 36px;
+    text-align: center;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1.2;
+    padding: 4px 10px;
+    border-radius: 5px;
+    border: 1px solid transparent;
+    color: var(--muted, #66758a);
+    background: transparent;
+    transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.ticket-ack-mail-toggle-option input:not(:checked) + span {
+    color: var(--muted, #66758a);
+    background: transparent;
+    border-color: transparent;
+    box-shadow: none;
+}
+
+.ticket-ack-mail-toggle-option input[value="1"]:checked + span {
+    color: var(--success, #15803d);
+    background: var(--success-soft, #dcfce7);
+    border-color: color-mix(in srgb, var(--success, #15803d) 35%, transparent);
+    box-shadow: 0 1px 4px color-mix(in srgb, var(--success, #15803d) 18%, transparent);
+}
+
+.ticket-ack-mail-toggle-option input[value="0"]:checked + span {
+    color: var(--danger, #b91c1c);
+    background: var(--danger-soft, #fee2e2);
+    border-color: color-mix(in srgb, var(--danger, #b91c1c) 35%, transparent);
+    box-shadow: 0 1px 4px color-mix(in srgb, var(--danger, #b91c1c) 18%, transparent);
+}
+
+.ticket-ack-mail-toggle-option input:focus-visible + span {
+    outline: 2px solid var(--primary, #1d4ed8);
+    outline-offset: 1px;
+}
+
+.ticket-modal-panel--create .ticket-ack-mail-toggle-option span {
+    min-width: 32px;
+    font-size: 10px;
+    padding: 3px 8px;
+}

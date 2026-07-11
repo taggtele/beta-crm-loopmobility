@@ -1,0 +1,667 @@
+<?php
+require_once __DIR__ . '/email_processor.php';
+require_once __DIR__ . '/../../services/email_account_service.php';
+require_once __DIR__ . '/../../config/db.php';
+
+// Returns all active email accounts that are IMAP-enabled.
+function email_imap_active_accounts(PDO $pdo): array
+{
+    email_imap_ensure_account_columns($pdo);
+    $usernameSelect = email_account_service_has_column($pdo, 'username')
+        ? "COALESCE(NULLIF(username, ''), email) AS username"
+        : 'email AS username';
+
+    $stmt = $pdo->prepare(
+        'SELECT id, user_id, email, ' . $usernameSelect . ', password, imap_host, imap_port, encryption, last_checked_at, import_cutoff_at, last_seen_uid, cron_enabled
+         FROM email_accounts
+         WHERE is_active = 1
+         AND imap_host IS NOT NULL
+         AND imap_host <> \'\'
+         ORDER BY id ASC'
+    );
+    $stmt->execute();
+
+    return $stmt->fetchAll();
+}
+
+// Returns one IMAP account by database ID, optionally including inactive rows.
+function email_imap_account_by_id(PDO $pdo, int $accountId, bool $includeInactive = false): ?array
+{
+    email_imap_ensure_account_columns($pdo);
+    $usernameSelect = email_account_service_has_column($pdo, 'username')
+        ? "COALESCE(NULLIF(username, ''), email) AS username"
+        : 'email AS username';
+
+    if ($accountId <= 0) {
+        return null;
+    }
+
+    $sql = 'SELECT id, user_id, email, ' . $usernameSelect . ', password, imap_host, imap_port, encryption, is_active, last_checked_at, import_cutoff_at, last_seen_uid
+            FROM email_accounts
+            WHERE id = :id
+            AND imap_host IS NOT NULL
+            AND imap_host <> \'\'';
+
+    if (!$includeInactive) {
+        $sql .= ' AND is_active = 1';
+    }
+
+    $sql .= ' LIMIT 1';
+
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute([':id' => $accountId]);
+    $account = $stmt->fetch();
+
+    return $account ?: null;
+}
+
+function email_imap_ensure_account_columns(PDO $pdo): void
+{
+    static $ready = false;
+
+    if ($ready) {
+        return;
+    }
+
+    email_account_service_ensure_schema($pdo);
+
+    $columns = [];
+    foreach ($pdo->query('SHOW COLUMNS FROM email_accounts')->fetchAll() as $column) {
+        $columns[(string) ($column['Field'] ?? '')] = true;
+    }
+
+    if (!isset($columns['import_cutoff_at'])) {
+        $pdo->exec('ALTER TABLE email_accounts ADD COLUMN import_cutoff_at DATETIME NULL AFTER last_checked_at');
+    }
+
+    if (!isset($columns['last_seen_uid'])) {
+        $pdo->exec('ALTER TABLE email_accounts ADD COLUMN last_seen_uid BIGINT NULL AFTER import_cutoff_at');
+    }
+
+    $ready = true;
+}
+
+// Updates the account heartbeat after an IMAP poll attempt finishes.
+function email_imap_touch_account(PDO $pdo, int $accountId): void
+{
+    if ($accountId <= 0) {
+        return;
+    }
+
+    $stmt = $pdo->prepare(
+        'UPDATE email_accounts
+         SET last_checked_at = NOW()
+         WHERE id = :id'
+    );
+    $stmt->execute([':id' => $accountId]);
+}
+
+// Updates whether an email account can be imported by cron jobs.
+function email_imap_set_account_active(PDO $pdo, int $accountId, bool $isActive): void
+{
+    if ($accountId <= 0) {
+        return;
+    }
+
+    $stmt = $pdo->prepare(
+        'UPDATE email_accounts
+         SET is_active = :is_active
+         WHERE id = :id'
+    );
+    $stmt->execute([
+        ':is_active' => $isActive ? 1 : 0,
+        ':id' => $accountId,
+    ]);
+}
+
+// Sets the starting point for future-only imports and skips legacy inbox history.
+function email_imap_initialize_cutoff(PDO $pdo, int $accountId, string $cutoffAt): void
+{
+    if ($accountId <= 0 || trim($cutoffAt) === '') {
+        return;
+    }
+
+    $stmt = $pdo->prepare(
+        'UPDATE email_accounts
+         SET import_cutoff_at = :import_cutoff_at,
+             last_checked_at = :last_checked_at
+         WHERE id = :id
+         AND import_cutoff_at IS NULL'
+    );
+    $stmt->execute([
+        ':import_cutoff_at' => $cutoffAt,
+        ':last_checked_at' => $cutoffAt,
+        ':id' => $accountId,
+    ]);
+}
+
+// Stores the highest mailbox UID as the future-only import baseline.
+function email_imap_store_last_seen_uid(PDO $pdo, int $accountId, int $lastSeenUid, string $checkedAt): void
+{
+    if ($accountId <= 0 || $lastSeenUid < 0) {
+        return;
+    }
+
+    $stmt = $pdo->prepare(
+        'UPDATE email_accounts
+         SET last_seen_uid = :last_seen_uid,
+             import_cutoff_at = COALESCE(import_cutoff_at, :import_cutoff_at),
+             last_checked_at = :last_checked_at
+         WHERE id = :id'
+    );
+    $stmt->execute([
+        ':last_seen_uid' => $lastSeenUid,
+        ':import_cutoff_at' => $checkedAt,
+        ':last_checked_at' => $checkedAt,
+        ':id' => $accountId,
+    ]);
+}
+
+// Arms one mailbox so that only future emails after the current highest UID are imported.
+function email_imap_arm_future_only_baseline(PDO $pdo, int $accountId): array
+{
+    $account = email_imap_account_by_id($pdo, $accountId, true);
+    if (!$account) {
+        throw new RuntimeException('IMAP account not found.');
+    }
+
+    $armedAt = date('Y-m-d H:i:s');
+    $connection = email_imap_open_connection($account);
+    $stream = $connection['stream'];
+    $sequence = $connection['sequence'];
+
+    try {
+        $uids = email_imap_fetch_all_uids($stream, $sequence);
+        $highestUid = $uids ? max($uids) : 0;
+
+        email_imap_store_last_seen_uid($pdo, $accountId, $highestUid, $armedAt);
+
+        return [
+            'account_id' => $accountId,
+            'email' => (string) ($account['email'] ?? ''),
+            'highest_uid' => $highestUid,
+            'message_count' => count($uids),
+            'armed_at' => $armedAt,
+        ];
+    } finally {
+        email_imap_command($stream, $sequence++, 'LOGOUT');
+        fclose($stream);
+    }
+}
+
+// Parses UID values from an IMAP SEARCH response.
+function email_imap_parse_search_uids(array $lines): array
+{
+    $uids = [];
+
+    foreach ($lines as $line) {
+        if (stripos($line, '* SEARCH') === 0) {
+            $parts = preg_split('/\s+/', trim($line));
+            $uids = array_map('intval', array_values(array_filter(array_slice($parts, 2), 'strlen')));
+            break;
+        }
+    }
+
+    return $uids;
+}
+
+// Reads one IMAP line from the active socket.
+function email_imap_read_line($stream): string
+{
+    $line = fgets($stream);
+    if ($line === false) {
+        throw new RuntimeException('Unexpected end of IMAP stream.');
+    }
+
+    return $line;
+}
+
+// Reads a tagged IMAP command response until completion.
+function email_imap_read_tagged_response($stream, string $tag): array
+{
+    $lines = [];
+
+    while (true) {
+        $line = email_imap_read_line($stream);
+        $lines[] = $line;
+
+        if (strpos($line, $tag . ' ') === 0) {
+            if (stripos($line, $tag . ' OK') === 0) {
+                return $lines;
+            }
+
+            throw new RuntimeException(trim($line));
+        }
+    }
+}
+
+// Sends one IMAP command and returns the raw response lines.
+function email_imap_command($stream, int $sequence, string $command): array
+{
+    $tag = 'A' . str_pad((string) $sequence, 4, '0', STR_PAD_LEFT);
+    fwrite($stream, $tag . ' ' . $command . "\r\n");
+
+    return email_imap_read_tagged_response($stream, $tag);
+}
+
+// Opens and authenticates an IMAP socket using the configured account.
+function email_imap_open_connection(array $account)
+{
+    $encryption = strtolower((string) ($account['encryption'] ?? 'ssl'));
+    $host = (string) $account['imap_host'];
+    $port = (int) $account['imap_port'];
+    $transportHost = $encryption === 'ssl' ? 'ssl://' . $host : $host;
+
+    $stream = @stream_socket_client($transportHost . ':' . $port, $errorNumber, $errorMessage, 20);
+    if (!is_resource($stream)) {
+        throw new RuntimeException('Unable to connect to IMAP server: ' . $errorMessage);
+    }
+
+    stream_set_timeout($stream, 20);
+    $greeting = email_imap_read_line($stream);
+    if (stripos($greeting, '* OK') !== 0) {
+        throw new RuntimeException(trim($greeting));
+    }
+
+    $sequence = 1;
+    if ($encryption === 'tls') {
+        email_imap_command($stream, $sequence++, 'STARTTLS');
+        $cryptoEnabled = stream_socket_enable_crypto($stream, true, STREAM_CRYPTO_METHOD_TLS_CLIENT);
+        if ($cryptoEnabled !== true) {
+            throw new RuntimeException('Unable to enable IMAP TLS encryption.');
+        }
+    }
+
+    email_imap_command(
+        $stream,
+        $sequence++,
+        'LOGIN "' . addcslashes((string) ($account['username'] ?? $account['email']), '\\"') . '" "' . addcslashes((string) $account['password'], '\\"') . '"'
+    );
+    email_imap_command($stream, $sequence++, 'SELECT INBOX');
+
+    return ['stream' => $stream, 'sequence' => $sequence];
+}
+
+// Returns all message UIDs from the current mailbox.
+function email_imap_fetch_all_uids($stream, int &$sequence): array
+{
+    return email_imap_parse_search_uids(email_imap_command($stream, $sequence++, 'UID SEARCH ALL'));
+}
+
+// Returns message UIDs newer than the stored mailbox UID baseline.
+function email_imap_fetch_uids_since_uid($stream, int &$sequence, int $lastSeenUid, int $limit = 0): array
+{
+    $uids = array_values(array_filter(
+        email_imap_fetch_all_uids($stream, $sequence),
+        static fn(int $uid): bool => $uid > $lastSeenUid
+    ));
+
+    if (!$uids) {
+        return [];
+    }
+
+    if ($limit <= 0) {
+        return $uids;
+    }
+
+    return array_slice($uids, -1 * max(1, $limit));
+}
+
+// Reads a fixed-size IMAP literal payload.
+function email_imap_read_literal($stream, int $length): string
+{
+    $data = '';
+
+    while (strlen($data) < $length) {
+        $chunk = fread($stream, $length - strlen($data));
+        if ($chunk === false || $chunk === '') {
+            throw new RuntimeException('Unable to read IMAP message body.');
+        }
+        $data .= $chunk;
+    }
+
+    return $data;
+}
+
+// Fetches the raw RFC822 message for one UID.
+function email_imap_fetch_raw_message($stream, int &$sequence, string $uid): string
+{
+    $tag = 'A' . str_pad((string) $sequence++, 4, '0', STR_PAD_LEFT);
+    fwrite($stream, $tag . ' UID FETCH ' . $uid . ' (RFC822)' . "\r\n");
+
+    $raw = '';
+
+    while (true) {
+        $line = email_imap_read_line($stream);
+
+        if (preg_match('/\{(\d+)\}\s*$/', trim($line), $matches)) {
+            $raw = email_imap_read_literal($stream, (int) $matches[1]);
+            continue;
+        }
+
+        if (strpos($line, $tag . ' ') === 0) {
+            if (stripos($line, $tag . ' OK') !== 0) {
+                throw new RuntimeException(trim($line));
+            }
+            break;
+        }
+    }
+
+    return $raw;
+}
+
+// Decodes MIME-encoded header values into UTF-8 text.
+function email_imap_decode_header_value(string $value): string
+{
+    $decoded = @iconv_mime_decode($value, ICONV_MIME_DECODE_CONTINUE_ON_ERROR, 'UTF-8');
+
+    return $decoded !== false ? trim($decoded) : trim($value);
+}
+
+// Parses raw RFC822 headers into a normalized associative array.
+function email_imap_parse_headers(string $headerBlock): array
+{
+    $headers = [];
+    $current = null;
+
+    foreach (preg_split("/\r\n|\n|\r/", $headerBlock) as $line) {
+        if ($line === '') {
+            continue;
+        }
+
+        if (($line[0] === ' ' || $line[0] === "\t") && $current !== null) {
+            $headers[$current] .= ' ' . trim($line);
+            continue;
+        }
+
+        [$name, $value] = array_pad(explode(':', $line, 2), 2, '');
+        $current = strtolower(trim($name));
+        $headers[$current] = trim($value);
+    }
+
+    return $headers;
+}
+
+// Decodes transfer-encoded body text into readable plain text.
+function email_imap_decode_part_body(string $body, string $encoding): string
+{
+    $encoding = strtolower(trim($encoding));
+
+    if ($encoding === 'base64') {
+        $decoded = base64_decode($body, true);
+        return $decoded !== false ? $decoded : $body;
+    }
+
+    if ($encoding === 'quoted-printable') {
+        return quoted_printable_decode($body);
+    }
+
+    return $body;
+}
+
+// Converts message dates to IST for consistent ticket/mail display.
+function email_imap_datetime_ist(?string $value = null): string
+{
+    try {
+        $date = trim((string) $value) !== ''
+            ? new DateTimeImmutable((string) $value)
+            : new DateTimeImmutable('now');
+    } catch (Throwable $throwable) {
+        $date = new DateTimeImmutable('now');
+    }
+
+    return $date->setTimezone(new DateTimeZone('Asia/Kolkata'))->format('Y-m-d H:i:s');
+}
+
+// Cleans imported email bodies while preserving readable paragraph breaks.
+function email_imap_clean_body(string $body): string
+{
+    $body = trim($body);
+    if ($body === '') {
+        return '';
+    }
+
+    $looksHtml = (bool) preg_match('/<[a-z][\s\S]*>/i', $body);
+    if ($looksHtml) {
+        $body = preg_replace('#<script[^>]*>.*?</script>#is', ' ', $body) ?? $body;
+        $body = preg_replace('#<style[^>]*>.*?</style>#is', ' ', $body) ?? $body;
+        $body = preg_replace('#<!--.*?-->#s', ' ', $body) ?? $body;
+        $body = preg_replace('#<(br|/p|/div|/tr|/li|/h[1-6])[^>]*>#i', "\n", $body) ?? $body;
+        $body = strip_tags($body);
+        $body = html_entity_decode($body, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+    }
+
+    $body = str_replace("\0", '', $body);
+    $body = preg_replace("/\r\n|\r/", "\n", $body) ?? $body;
+    $lines = [];
+    $blank = false;
+
+    foreach (explode("\n", $body) as $line) {
+        $line = trim(preg_replace('/[ \t]+/', ' ', $line) ?? $line);
+        if ($line === '') {
+            if (!$blank && $lines) {
+                $lines[] = '';
+            }
+            $blank = true;
+            continue;
+        }
+
+        $blank = false;
+        $lines[] = $line;
+    }
+
+    while (end($lines) === '') {
+        array_pop($lines);
+    }
+
+    return trim(implode("\n", $lines));
+}
+
+// Extracts a best-effort plain-text body from a raw RFC822 email.
+function email_imap_extract_body(string $bodyBlock, array $headers): string
+{
+    $contentType = strtolower((string) ($headers['content-type'] ?? 'text/plain'));
+    $encoding = (string) ($headers['content-transfer-encoding'] ?? '');
+
+    if (strpos($contentType, 'multipart/') === false) {
+        return email_imap_clean_body(email_imap_decode_part_body($bodyBlock, $encoding));
+    }
+
+    if (!preg_match('/boundary="?([^";]+)"?/i', $contentType, $matches)) {
+        return trim($bodyBlock);
+    }
+
+    $boundary = $matches[1];
+    $parts = explode('--' . $boundary, $bodyBlock);
+    $textBody = '';
+    $htmlBody = '';
+
+    foreach ($parts as $part) {
+        $part = ltrim($part, "\r\n");
+        if ($part === '' || $part === '--') {
+            continue;
+        }
+
+        [$partHeadersBlock, $partBody] = array_pad(preg_split("/\r\n\r\n|\n\n|\r\r/", $part, 2), 2, '');
+        $partHeaders = email_imap_parse_headers($partHeadersBlock);
+        $partType = strtolower((string) ($partHeaders['content-type'] ?? 'text/plain'));
+
+        // Recursively handle nested multipart sections (e.g., multipart/alternative)
+        if (strpos($partType, 'multipart/') !== false) {
+            $nested = email_imap_extract_body($partBody, $partHeaders);
+            if ($nested !== '' && $textBody === '') {
+                $textBody = $nested;
+            }
+            continue;
+        }
+
+        if (strpos($partType, 'image/') !== false || strpos($partType, 'attachment') !== false) {
+            continue;
+        }
+
+        if (strpos($partType, 'text/plain') !== false) {
+            $textBody = trim(email_imap_decode_part_body($partBody, (string) ($partHeaders['content-transfer-encoding'] ?? '')));
+        } elseif (strpos($partType, 'text/html') !== false) {
+            $htmlBody = trim(email_imap_decode_part_body($partBody, (string) ($partHeaders['content-transfer-encoding'] ?? '')));
+        }
+    }
+
+    if ($textBody !== '') {
+        return email_imap_clean_body($textBody);
+    }
+
+    if ($htmlBody !== '') {
+        return email_imap_clean_body($htmlBody);
+    }
+
+    return email_imap_clean_body($bodyBlock);
+}
+
+// Parses one raw RFC822 email into the fields needed by the ticket importer.
+function email_imap_parse_message(string $rawMessage): array
+{
+    [$headerBlock, $bodyBlock] = array_pad(preg_split("/\r\n\r\n|\n\n|\r\r/", $rawMessage, 2), 2, '');
+    $headers = email_imap_parse_headers($headerBlock);
+
+    $fromHeader = email_imap_decode_header_value((string) ($headers['from'] ?? ''));
+    $fromEmail = $fromHeader;
+    $fromName = '';
+
+    if (preg_match('/^(.*)<([^>]+)>$/', $fromHeader, $matches)) {
+        $fromName = trim(trim($matches[1]), '" ');
+        $fromEmail = trim($matches[2]);
+    }
+
+    $messageId = trim((string) ($headers['message-id'] ?? ''));
+    if ($messageId === '') {
+        $messageId = '<generated-' . sha1($rawMessage) . '@local>';
+    }
+
+    $inReplyTo = trim((string) ($headers['in-reply-to'] ?? ''));
+    $references = trim((string) ($headers['references'] ?? ''));
+    // thread_id kept for backward compatibility; prefers in-reply-to else references
+    $threadId = $inReplyTo !== '' ? $inReplyTo : $references;
+
+    return [
+        'message_id' => $messageId,
+        'from_name' => $fromName,
+        'from_email' => trim($fromEmail, '<> '),
+        'subject' => email_imap_decode_header_value((string) ($headers['subject'] ?? 'Incoming Email')),
+        'received_at' => email_imap_datetime_ist((string) ($headers['date'] ?? '')),
+        'in_reply_to' => $inReplyTo,
+        'references' => $references,
+        'thread_id' => $threadId,
+        'body' => email_imap_extract_body($bodyBlock, $headers),
+        'raw_message' => $rawMessage,
+    ];
+}
+
+// Imports email messages from every active account and converts them into tickets.
+// Safe: $limitPerAccount caps emails read per mailbox (0 = unlimited).
+function email_imap_import_messages(PDO $pdo, int $limitPerAccount = 0, int $accountId = 0, bool $cronFilter = false): array
+{
+    // Always use the freshest connection (auto-reconnect if closed)
+    $pdo = get_pdo();
+    
+    $summary = [
+        'accounts' => 0,
+        'messages' => 0,
+        'created' => 0,
+        'replied' => 0,
+        'unmapped' => 0,
+        'unknown' => 0,
+        'ignored' => 0,
+        'duplicates' => 0,
+        'baseline_initialized' => 0,
+        'failed' => 0,
+    ];
+
+    $accounts = email_imap_active_accounts($pdo);
+    
+    // Filter by cron_enabled if requested
+    if ($cronFilter) {
+        $accounts = array_filter($accounts, function($acc) {
+            return !empty($acc['cron_enabled']);
+        });
+    }
+    
+    foreach ($accounts as $account) {
+        // If specific account requested, skip others
+        if ($accountId > 0 && (int)($account['id'] ?? 0) !== $accountId) {
+            continue;
+        }
+        
+        $summary['accounts']++;
+        $pollStartedAt = date('Y-m-d H:i:s');
+
+        try {
+            $connection = email_imap_open_connection($account);
+            $stream = $connection['stream'];
+            $sequence = $connection['sequence'];
+            $accountId = (int) ($account['id'] ?? 0);
+            $lastSeenUid = (int) ($account['last_seen_uid'] ?? 0);
+
+            if ($lastSeenUid <= 0) {
+                $allUids = email_imap_fetch_all_uids($stream, $sequence);
+                $highestUid = $allUids ? max($allUids) : 0;
+
+                email_imap_initialize_cutoff($pdo, $accountId, $pollStartedAt);
+                email_imap_store_last_seen_uid($pdo, $accountId, $highestUid, $pollStartedAt);
+                $summary['baseline_initialized']++;
+
+                email_imap_command($stream, $sequence++, 'LOGOUT');
+                fclose($stream);
+                continue;
+            }
+
+            $uids = email_imap_fetch_uids_since_uid($stream, $sequence, $lastSeenUid, $limitPerAccount);
+            $highestSeenUid = $lastSeenUid;
+
+            foreach ($uids as $uid) {
+                try {
+                    $rawMessage = email_imap_fetch_raw_message($stream, $sequence, (string) $uid);
+                    $parsedMessage = email_imap_parse_message($rawMessage);
+
+                    $summary['messages']++;
+                    $result = email_processor_process_message($pdo, $account, $parsedMessage);
+
+                    if (!empty($result['duplicate'])) {
+                        $summary['duplicates']++;
+                    } elseif (!empty($result['unmapped'])) {
+                        $summary['unmapped']++;
+                    } elseif (!empty($result['unknown'])) {
+                        $summary['unknown']++;
+                    } elseif (!empty($result['ignored'])) {
+                        $summary['ignored']++;
+                    } elseif (!empty($result['is_reply'])) {
+                        $summary['replied']++;
+                    } elseif (!empty($result['success'])) {
+                        $summary['created']++;
+                    } else {
+                        $summary['failed']++;
+                    }
+
+                    // Update highestSeenUid only after successful processing (no exception)
+                    $highestSeenUid = max($highestSeenUid, (int) $uid);
+                    email_imap_store_last_seen_uid($pdo, $accountId, $highestSeenUid, $pollStartedAt);
+                } catch (Throwable $throwable) {
+                    $summary['failed']++;
+                    // DEBUG: output error
+                    error_log('IMAP Account #' . $accountId . ' Message UID ' . $uid . ' Error: ' . $throwable->getMessage());
+                    echo 'ERROR (Account #' . $accountId . ', UID ' . $uid . '): ' . $throwable->getMessage() . PHP_EOL;
+                }
+                // No finally here - touch happens once per account after all messages
+            }
+        } catch (Throwable $throwable) {
+            $summary['failed']++;
+            // DEBUG: output error with location
+            $msg = 'ERROR (Account #' . $accountId . ', UID ' . ($uid ?? 'N/A') . '): ' . $throwable->getMessage() . ' in ' . $throwable->getFile() . ':' . $throwable->getLine();
+            error_log($msg);
+            echo $msg . PHP_EOL;
+        } finally {
+            email_imap_touch_account($pdo, (int) ($account['id'] ?? 0));
+        }
+    } // close foreach $accounts
+
+    return $summary;
+}

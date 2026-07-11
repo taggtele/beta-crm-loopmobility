@@ -1,0 +1,39 @@
+.filter-card {
+    position: sticky;
+    top: calc(var(--topbar-height) + 10px);
+    z-index: 15;
+    padding: 14px 16px;
+    margin-bottom: 14px;
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(18px);
+}
+
+.filter-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 10px;
+}
+
+.filter-header h3 {
+    margin: 0;
+    font-size: 14px;
+}
+
+.filter-header p {
+    margin: 3px 0 0;
+    color: var(--muted);
+    font-size: 12px;
+}
+
+.filter-grid {
+    display: grid;
+    grid-template-columns: minmax(220px, 1.8fr) repeat(3, minmax(130px, 1fr)) auto auto;
+    gap: 10px;
+    align-items: end;
+}
+
+.ticket-filter-grid {
+    grid-template-columns: minmax(220px, 1.8fr) repeat(5, minmax(140px, 1fr));
+}

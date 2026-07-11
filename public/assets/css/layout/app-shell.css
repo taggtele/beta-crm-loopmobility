@@ -1,0 +1,105 @@
+.app-main {
+    margin-left: var(--sidebar-width);
+    width: calc(100% - var(--sidebar-width));
+    min-height: 100vh;
+    transition: margin-left 0.22s ease, width 0.22s ease;
+}
+
+.topbar {
+    position: sticky;
+    top: 0;
+    z-index: 25;
+    min-height: var(--topbar-height);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 18px 24px 14px;
+    backdrop-filter: blur(18px);
+    background: rgba(248, 251, 253, 0.88);
+    border-bottom: 1px solid rgba(220, 228, 238, 0.8);
+}
+
+.topbar-left,
+.topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.page-title {
+    min-width: 0;
+}
+
+.page-title h1 {
+    margin: 0;
+    font-size: 28px;
+    line-height: 1.1;
+}
+
+.page-title p {
+    margin: 5px 0 0;
+    color: var(--muted);
+    font-size: 13px;
+}
+
+.eyebrow {
+    display: inline-block;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--primary);
+    font-weight: 700;
+    margin-bottom: 5px;
+}
+
+.page-content {
+    padding: 18px 24px 24px;
+}
+
+.auth-content {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.auth-card,
+.card,
+.table-card,
+.form-card,
+.hero-card,
+.stat-card,
+.chart-card,
+.info-card {
+    background: rgba(255, 255, 255, 0.94);
+    border: 1px solid rgba(220, 228, 238, 0.9);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+}
+
+.auth-card {
+    max-width: 420px;
+    width: 100%;
+    padding: 28px;
+    box-shadow: var(--shadow-md);
+}
+
+.auth-card h1 {
+    margin: 0 0 8px;
+}
+
+.auth-card p {
+    color: var(--muted);
+    margin: 0 0 20px;
+}
+
+.form-card,
+.table-card,
+.hero-card,
+.chart-card,
+.info-card,
+.card {
+    padding: 18px;
+}

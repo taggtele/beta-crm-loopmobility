@@ -1,0 +1,2 @@
+/* Legacy CSS entrypoint. Use assets/css/app.css and the modular files for maintenance. */
+@import url("./app.css");

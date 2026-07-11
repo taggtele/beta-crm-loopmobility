@@ -1,0 +1,90 @@
+* {
+    box-sizing: border-box;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    margin: 0;
+    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    background:
+        radial-gradient(circle at top left, rgba(29, 78, 216, 0.07), transparent 30%),
+        linear-gradient(180deg, #f8fbfd, var(--bg));
+    color: var(--text);
+}
+
+body.theme-dark {
+    background:
+        radial-gradient(circle at top left, rgba(96, 165, 250, 0.12), transparent 28%),
+        linear-gradient(180deg, #08111d, var(--bg));
+}
+
+body.theme-dark .topbar {
+    background: rgba(8, 17, 29, 0.84);
+    border-bottom-color: rgba(34, 53, 83, 0.92);
+}
+
+body.theme-dark .auth-card,
+body.theme-dark .card,
+body.theme-dark .table-card,
+body.theme-dark .form-card,
+body.theme-dark .hero-card,
+body.theme-dark .stat-card,
+body.theme-dark .chart-card,
+body.theme-dark .info-card,
+body.theme-dark .dropdown-menu,
+body.theme-dark .profile-trigger,
+body.theme-dark .icon-btn,
+body.theme-dark .topbar-chip,
+body.theme-dark .filter-card,
+body.theme-dark .mail-body,
+body.theme-dark .meta-item,
+body.theme-dark .info-strip,
+body.theme-dark .pagination,
+body.theme-dark .pagination-btn,
+body.theme-dark .mail-card {
+    background: var(--panel);
+    border-color: var(--border);
+    color: var(--text);
+}
+
+body.theme-dark .info-strip,
+body.theme-dark .profile-banner,
+body.theme-dark .mail-card,
+body.theme-dark .meta-item,
+body.theme-dark .pagination,
+body.theme-dark .filter-card {
+    background: rgba(15, 27, 45, 0.92);
+}
+
+body.theme-dark .btn-outline,
+body.theme-dark .pagination-btn,
+body.theme-dark .input-group input,
+body.theme-dark .input-group select,
+body.theme-dark .input-group textarea {
+    background: #0b1628;
+    border-color: var(--border);
+    color: var(--text);
+}
+
+body.theme-dark thead th {
+    background: rgba(15, 27, 45, 0.96);
+}
+
+body.theme-dark tbody tr:hover {
+    background: rgba(96, 165, 250, 0.08);
+}
+
+a {
+    color: inherit;
+    text-decoration: none;
+}
+
+button,
+input,
+select,
+textarea {
+    font: inherit;
+}

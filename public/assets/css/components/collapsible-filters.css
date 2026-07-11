@@ -1,0 +1,19 @@
+.filter-card.hidden .filter-grid,
+.filter-card.hidden .filter-header > div:first-child p {
+    display: none;
+}
+
+.filter-card.hidden .filter-header {
+    padding: 12px 18px;
+}
+
+.filter-card.hidden h3::after {
+    content: ' (Hidden)';
+    font-weight: 400;
+    font-size: 12px;
+    color: var(--muted);
+}
+
+.filter-card.hidden .form-actions {
+    display: none;
+}

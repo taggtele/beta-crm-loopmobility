@@ -1,0 +1,40 @@
+.icon-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    background: var(--panel);
+    color: var(--muted-strong);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.18s ease, border-color 0.18s ease;
+}
+
+.icon-btn:hover {
+    background: var(--panel-soft);
+    border-color: #cfd9e5;
+}
+
+.icon-text {
+    font-size: 14px;
+    line-height: 1;
+}
+
+.menu-toggle {
+    display: none;
+    flex-direction: column;
+}
+
+.menu-toggle span {
+    width: 16px;
+    height: 2px;
+    margin: 2px 0;
+    background: var(--text);
+    border-radius: 999px;
+}
+
+.desktop-only {
+    display: inline-flex;
+}

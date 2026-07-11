@@ -1,0 +1,17 @@
+.info-strip {
+    display: flex;
+    justify-content: space-between;
+    gap: 14px;
+    align-items: center;
+    padding: 14px 16px;
+    border-radius: 14px;
+    background: var(--panel-soft);
+    border: 1px solid #e7edf5;
+    margin-bottom: 14px;
+}
+
+.info-strip p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 13px;
+}

@@ -1,0 +1,253 @@
+.table-menu {
+    display: inline-flex;
+    position: relative;
+    z-index: 100;
+    vertical-align: middle;
+}
+
+.table-menu-trigger {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: -1px;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.table-menu-trigger:hover {
+    background: var(--panel-soft);
+    border-color: var(--border);
+}
+
+.table-menu .dropdown-menu {
+    position: absolute;
+    z-index: 9999;
+    min-width: 220px;
+    display: none;
+    right: 0;
+    top: 100%;
+    margin-top: 6px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.14);
+    padding: 6px;
+}
+
+.table-menu.open {
+    z-index: 200;
+}
+
+.table-menu.open .dropdown-menu {
+    display: block;
+}
+
+.ticket-list-card .table-menu.open .dropdown-menu {
+    display: block;
+}
+
+.table-menu-trigger svg {
+    width: 16px;
+    height: 16px;
+}
+
+.table-actions-menu {
+    min-width: 220px;
+    max-width: 280px;
+    padding: 6px;
+}
+
+.table-actions-menu .menu-links a {
+    display: block;
+    padding: 9px 12px;
+    border-radius: 8px;
+    color: var(--text);
+    text-decoration: none;
+    font-size: 13px;
+    transition: background 0.15s ease;
+}
+
+.table-actions-menu .menu-links a:hover {
+    background: var(--panel-soft);
+    color: var(--primary);
+}
+
+.actions-cell {
+    width: 72px;
+    min-width: 72px;
+    padding: 10px 12px !important;
+    text-align: right;
+    vertical-align: middle;
+}
+
+.ticket-actions-cell {
+    position: relative;
+}
+
+.menu-section {
+    margin-top: 4px;
+    padding-top: 6px;
+    border-top: 1px solid var(--border);
+}
+
+.menu-section-label {
+    display: block;
+    padding: 4px 12px 6px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--muted);
+}
+
+.menu-status-options {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.menu-status-btn,
+.menu-assign-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 8px 12px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--text);
+    font-size: 13px;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+
+.menu-status-btn:hover:not(:disabled),
+.menu-assign-btn:hover:not(:disabled) {
+    background: var(--panel-soft);
+}
+
+.menu-status-btn.is-current,
+.menu-assign-btn.is-current {
+    background: var(--primary-soft);
+    color: var(--primary);
+    cursor: default;
+}
+
+.menu-status-btn.is-loading,
+.menu-assign-btn.is-loading {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.menu-status-btn:disabled,
+.menu-assign-btn:disabled {
+    opacity: 0.55;
+    cursor: default;
+}
+
+.status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.status-dot-open {
+    background: var(--open);
+}
+
+.status-dot-progress {
+    background: var(--progress);
+}
+
+.status-dot-closed {
+    background: var(--success);
+}
+
+.menu-current-tag {
+    margin-left: auto;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: var(--primary);
+}
+
+.menu-assign-search {
+    width: calc(100% - 16px);
+    margin: 4px 8px 6px;
+    padding: 8px 10px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 12px;
+    background: var(--panel-soft);
+    color: var(--text);
+}
+
+.menu-assign-search:focus {
+    outline: none;
+    border-color: var(--primary);
+}
+
+.menu-assign-list {
+    max-height: 200px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 0 2px 4px;
+}
+
+.menu-assign-btn small {
+    margin-left: auto;
+    font-size: 11px;
+    color: var(--muted);
+}
+
+.menu-assign-btn.menu-assign-me {
+    font-weight: 600;
+    color: var(--primary);
+}
+
+.menu-form {
+    margin: 0;
+}
+
+.menu-link-button,
+.menu-static-text {
+    display: block;
+    width: 100%;
+    padding: 10px 12px;
+    border: 0;
+    border-radius: 12px;
+    background: transparent;
+    color: var(--muted-strong);
+    text-align: left;
+    font: inherit;
+}
+
+.menu-link-button {
+    cursor: pointer;
+}
+
+.menu-link-button:hover {
+    background: var(--panel-soft);
+    color: var(--text);
+}
+
+.menu-static-text {
+    color: var(--muted);
+}
+
+.actions-cell form.inline-form {
+    display: inline-flex;
+    align-items: center;
+    min-width: auto;
+    width: auto;
+    margin: 0;
+    padding: 0;
+}

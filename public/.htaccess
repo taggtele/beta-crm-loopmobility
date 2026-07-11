@@ -1,0 +1,57 @@
+# 1. Prevent directory browsing (Security)
+Options -Indexes
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # ----------------------------------------------------------------------
+    # SSL & HTTPS REDIRECT SECTION
+    # ----------------------------------------------------------------------
+    # NOTE: Keep the lines below COMMENTED (#) if you are using only an IP address.
+    # Once you install an SSL Certificate and point a Domain, remove the '#' 
+    # from the next two lines to force HTTPS.
+    
+     RewriteCond %{HTTPS} !=on
+     RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+    # ----------------------------------------------------------------------
+    # ROUTING SECTION
+    # ----------------------------------------------------------------------
+    # If the requested filename/directory exists, serve it directly
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    
+    # Otherwise, send everything to index.php
+    RewriteRule ^ index.php [L]
+</IfModule>
+
+# 2. SECURITY HEADERS (Protects against common attacks)
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+    Header always set Permissions-Policy "geolocation=(), microphone=(), camera=()"
+    Header always unset X-Powered-By
+    
+    # Cache static assets for better performance (30 days)
+    <FilesMatch "\.(css|js|png|jpg|jpeg|gif|webp|svg|ico|woff|woff2)$">
+        Header set Cache-Control "public, max-age=2592000"
+    </FilesMatch>
+</IfModule>
+
+# 3. GZIP COMPRESSION (Makes your site load faster)
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/html text/plain text/css text/javascript application/javascript application/json image/svg+xml
+</IfModule>
+
+# 4. BROWSER CACHING
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType text/css "access plus 30 days"
+    ExpiresByType application/javascript "access plus 30 days"
+    ExpiresByType image/png "access plus 30 days"
+    ExpiresByType image/jpeg "access plus 30 days"
+    ExpiresByType image/webp "access plus 30 days"
+    ExpiresByType image/svg+xml "access plus 30 days"
+    ExpiresDefault "access plus 1 day"
+</IfModule>

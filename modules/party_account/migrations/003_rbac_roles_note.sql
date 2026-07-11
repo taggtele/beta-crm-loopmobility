@@ -1,0 +1,10 @@
+-- RBAC: Party Account module (`users.role` VARCHAR)
+--
+-- Admin   — full CRM + Party Account (view + manage)
+-- Finance — Party Account only (view + manage); other CRM URLs redirect to this module
+-- Sales   — Party Account view-only (list, detail, filters; no create/edit/archive/export)
+-- Agent   — no Party Account access (403)
+--
+-- Example:
+--   UPDATE users SET role = 'Finance' WHERE user_id = 'finance1';
+--   UPDATE users SET role = 'Sales' WHERE user_id = 'sales1';

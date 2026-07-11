@@ -1,0 +1,45 @@
+{
+    "version": "2.0.1",
+    "build": "20260603",
+    "release_date": "2026-06-03",
+    "features": [
+        "test"
+    ],
+    "history": [
+        {
+            "version": "2.0.0",
+            "build": "20260523",
+            "release_date": "2026-05-23",
+            "features": [
+                "Email logs: flag important mail, compact filters, improved reading pane",
+                "Ticket view: Reply to Customer / Reply to Vendor with thread isolation",
+                "Outlook-style clean reply compose (signature + empty body; headers preserve threading)",
+                "CC stored in outbox log and shown in email read header",
+                "Admin release management — update version and feature notes from the app"
+            ],
+            "archived_at": "2026-06-03T14:47:18+00:00"
+        },
+        {
+            "version": "1.1.0",
+            "build": "20260523",
+            "release_date": "2026-05-23",
+            "features": [
+                "Email logs polish, flags, quick reply from ticket view",
+                "Customer/vendor thread isolation on compose",
+                "Outlook-style clean reply editor"
+            ],
+            "archived_at": "2026-05-23T00:00:00+00:00"
+        },
+        {
+            "version": "1.0.0",
+            "build": "20260419",
+            "release_date": "2026-04-19",
+            "features": [
+                "Initial production release — IMAP, tickets, SMTP, dashboard, notifications"
+            ],
+            "archived_at": "2026-05-23T00:00:00+00:00"
+        }
+    ],
+    "updated_at": "2026-06-03T14:47:18+00:00",
+    "updated_by": "tagg_admin"
+}

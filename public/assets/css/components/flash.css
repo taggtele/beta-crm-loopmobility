@@ -1,0 +1,44 @@
+.flash {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 13px 15px;
+    border-radius: 14px;
+    margin-bottom: 14px;
+    border: 1px solid transparent;
+    font-size: 14px;
+}
+
+.flash:before {
+    font-weight: 700;
+}
+
+.flash-success {
+    background: var(--success-soft);
+    border-color: #bbf7d0;
+    color: var(--success);
+}
+
+.flash-success:before {
+    content: "OK";
+}
+
+.flash-error {
+    background: var(--danger-soft);
+    border-color: #fecaca;
+    color: var(--danger);
+}
+
+.flash-error:before {
+    content: "!";
+}
+
+.flash-info {
+    background: var(--primary-soft);
+    border-color: #bfdbfe;
+    color: var(--primary);
+}
+
+.flash-info:before {
+    content: "i";
+}

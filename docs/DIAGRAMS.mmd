@@ -1,0 +1,520 @@
+# Email System Architecture Diagram (Mermaid)
+
+Copy-paste into Mermaid live editor: https://mermaid.live
+
+---
+
+## Complete Data Flow
+
+```mermaid
+flowchart TB
+    Start([IMAP Mailbox<br/>Multiple Accounts]) --> Fetch{Fetch New UIDs<br/>last_seen_uid+}
+    Fetch --> Parse[Parse RFC822<br/>headers + body]
+    Parse --> Extract[Extract<br/>external_ticket_id]
+    Extract --> Match{Match Existing Ticket?}
+    
+    Match -->|YES - Reply| Reply[Link to Ticket<br/>email_inbox_log.ticket_id<br/>processing_result='replied']
+    Match -->|NO - New| Create[Create Ticket<br/>INSERT tickets<br/>external_ticket_id=extracted<br/>issue=subject]
+    
+    Create --> Log1[email_inbox_log<br/>ticket_id set]
+    Reply --> Log2[email_inbox_log<br/>ticket_id set]
+    
+    Log1 --> Notify1[Notify Admins]
+    Log2 --> Notify2[Notify Admins]
+    
+    Create --> AutoEmail1[Auto-Email: Created]
+    Create --> AutoEmail2[Auto-Email: Sent to Customer]
+    
+    AutoEmail2 --> Queue[email_outbox_log<br/>status=pending]
+    
+    Queue --> CronOut{cron/process_email_outbox.php}
+    CronOut --> SMTP[SMTP Connect<br/>AUTH LOGIN<br/>DATA]
+    SMTP --> Delivered[External Email<br/>Gmail/Outlook/etc.]
+    
+    Create --> TicketTbl[(tickets table)]
+    Reply --> Update[Ticket status<br/>reopen if Closed]
+    
+    style Start fill:#e0f2fe
+    style Fetch fill:#fef3c7
+    style Parse fill:#fef3c7
+    style Extract fill:#fef3c7
+    style Match fill:#ddd6fe
+    style Create fill:#bbf7d0
+    style Reply fill:#fecaca
+    style Queue fill:#fef3c7
+    style CronOut fill:#e0e7ff
+    style SMTP fill:#fbcfe8
+    style Delivered fill:#dcfce7
+    style TicketTbl fill:#f3e8ff
+```
+
+---
+
+## Inbound Processing Detail
+
+```mermaid
+flowchart LR
+    A[Raw Email<br/>RFC822] --> B[Parse Headers<br/>From, Subject, Message-ID]
+    B --> C[Extract Body<br/>text/plain preferred]
+    C --> D[Detect external_ticket_id<br/>Parser: 3 regex patterns]
+    D --> E{Lookup:<br/>SELECT ticket_id<br/>WHERE external_ticket_id = ?}
+    
+    E -->|Found| F[UPDATE email_inbox_log<br/>SET ticket_id=?,<br/>processing_result='replied']
+    E -->|Not Found| G[INSERT tickets<br/>issue=subject<br/>description=body<br/>external_ticket_id=detected]
+    
+    F --> H[Add ticket_log: 'email_reply']
+    G --> I[Add ticket_log: 'created']
+    
+    H --> J[Notify admins]
+    I --> J
+    
+    G --> K[Queue created email<br/>if customer_email set]
+    
+    style A fill:#f1f5f9
+    style B fill:#fef3c7
+    style C fill:#fef3c7
+    style D fill:#fef3c7
+    style E fill:#ddd6fe
+    style F fill:#bbf7d0
+    style G fill:#fecaca
+    style H fill:#fef3c7
+    style I fill:#fef3c7
+    style J fill:#e0e7ff
+    style K fill:#fbcfe8
+```
+
+---
+
+## Outbound Processing Detail
+
+```mermaid
+flowchart LR
+    A[Trigger<br/>ticket created /<br/>status changed] --> B[Queue email<br/>email_smtp_queue()]
+    B --> C[email_outbox_log<br/>status=pending]
+    
+    C --> D{cron/<br/>process_email_outbox.php}
+    D --> E[Fetch 25 pending<br/>ORDER BY created_at ASC]
+    E --> F[For each:<br/>Load email_account]
+    
+    F --> G[Connect SMTP<br/>ssl:// or tls]
+    G --> H[EHLO]
+    H --> I{Encryption = TLS?}
+    I -->|YES| J[STARTTLS<br/>enable_crypto]
+    I -->|NO| K[Skip TLS]
+    J --> K
+    K --> L[AUTH LOGIN<br/>base64(username+password)]
+    L --> M{235?}
+    M -->|Success| N[MAIL FROM /<br/>RCPT TO /<br/>DATA]
+    M -->|Fail| O[Mark failed<br/>error_message]
+    N --> P{Send body<br/>ends with \\r\n.}
+    P -->|250| Q[Mark sent<br/>sent_at=NOW()]
+    P -->|Error| O
+    
+    O --> R[Log ticket_log<br/>'email_failed']
+    Q --> S[Log ticket_log<br/'email_sent']
+    
+    style A fill:#fef3c7
+    style B fill:#fef3c7
+    style C fill:#f3e8ff
+    style D fill:#e0e7ff
+    style E fill:#fef3c7
+    style F fill:#fef3c7
+    style G fill:#fbcfe8
+    style H fill:#fef3c7
+    style I fill:#fef3c7
+    style J fill:#fef3c7
+    style K fill:#fef3c7
+    style L fill:#fef3c7
+    style M fill:#ddd6fe
+    style N fill:#fef3c7
+    style O fill:#fecaca
+    style P fill:#ddd6fe
+    style Q fill:#bbf7d0
+    style R fill:#fef3c7
+    style S fill:#fef3c7
+```
+
+---
+
+## Dashboard Actions Flow
+
+```mermaid
+flowchart TD
+    A[Admin visits<br/>admin/email_management.php] --> B{Render page}
+    B --> C[Global Stats Cards]
+    B --> D[Global Action Buttons]
+    B --> E[Account Panels]
+    
+    E --> F[Click panel header]
+    F --> G[Expand accordion<br/>show details]
+    G --> H[Buttons visible:<br/>Test SMTP, Test IMAP,<br/>Import Last 10, Edit, View Logs]
+    
+    H --> I[Click Test SMTP]
+    I --> J[POST action=test_smtp<br/>account_id=X]
+    J --> K[email_smtp_active_account]
+    K --> L[socket_client ssl://host:port]
+    L --> M{Resource?}
+    M -->|Yes| N[Flash: ✓ SMTP OK]
+    M -->|No| O[Flash: ✗ error]
+    
+    H --> P[Click Import Last 10]
+    P --> Q[POST action=run_imap_import_single<br/>account_id=X]
+    Q --> R[email_imap_import_messages($pdo, 10, X)]
+    R --> S[Connect IMAP<br/>fetch UIDs > last_seen_uid LIMIT 10]
+    S --> T[Process each:<br/>email_processor_process_message]
+    T --> U[Create/reply tickets<br/>update last_seen_uid]
+    U --> V[Flash summary: X msgs, Y new, Z replies]
+    
+    D --> W[Import All Accounts]
+    W --> X[run_imap_import_all<br/>limitPerAccount=10]
+    X --> R
+    
+    D --> Y[Retry All Failed]
+    Y --> Z[SELECT 10 failed<br/>each: email_smtp_process_outbox_item]
+    Z --> AA[Mark sent or still failed]
+    AA --> AB[Flash: Retried N emails]
+    
+    style A fill:#e0f2fe
+    style B fill:#fef3c7
+    style C fill:#bbf7d0
+    style D fill:#fef3c7
+    style E fill:#fef3c7
+    style F fill:#ddd6fe
+    style G fill:#bbf7d0
+    style H fill:#fef3c7
+    style I fill:#fef3c7
+    style J fill:#fbcfe8
+    style K fill:#fef3c7
+    style L fill:#fef3c7
+    style M fill:#ddd6fe
+    style N fill:#bbf7d0
+    style O fill:#fecaca
+    style P fill:#fef3c7
+    style Q fill:#fbcfe8
+    style R fill:#fef3c7
+    style S fill:#fef3c7
+    style T fill:#fef3c7
+    style U fill:#fef3c7
+    style V fill:#bbf7d0
+    style W fill:#fef3c7
+    style X fill:#fbcfe8
+    style Y fill:#fef3c7
+    style Z fill:#fef3c7
+    style AA fill:#fef3c7
+    style AB fill:#bbf7d0
+```
+
+---
+
+## Database Relationships
+
+```mermaid
+erDiagram
+    EMAIL_ACCOUNTS ||--o{ EMAIL_OUTBOX_LOG : sends
+    EMAIL_ACCOUNTS ||--o{ EMAIL_INBOX_LOG : receives
+    EMAIL_OUTBOX_LOG }o--|| TICKETS : linked_to
+    EMAIL_INBOX_LOG }o--|| TICKETS : linked_to
+    
+    EMAIL_ACCOUNTS {
+        int id PK
+        varchar email
+        varchar from_name
+        varchar imap_host
+        int imap_port
+        enum encryption
+        varchar smtp_host
+        int smtp_port
+        enum smtp_encryption
+        text password
+        tinyint is_active
+        bigint last_seen_uid
+        datetime import_cutoff_at
+        datetime last_checked_at
+        timestamp created_at
+    }
+    
+    EMAIL_OUTBOX_LOG {
+        bigint id PK
+        int email_account_id FK
+        varchar from_email
+        varchar to_email
+        text subject
+        longtext body
+        enum status
+        text error_message
+        datetime sent_at
+        timestamp created_at
+        bigint ticket_id FK
+    }
+    
+    EMAIL_INBOX_LOG {
+        bigint id PK
+        varchar message_id UK
+        varchar from_email
+        text subject
+        longtext body
+        longtext raw_message
+        datetime received_at
+        enum processing_result
+        text ignored_reason
+        bigint ticket_id FK
+        varchar external_ticket_id
+        timestamp created_at
+    }
+    
+    TICKETS {
+        int ticket_id PK
+        varchar external_ticket_id
+        varchar issue
+        longtext description
+        varchar customer
+        varchar customer_email
+        enum status
+        enum priority
+        varchar assign_to
+        varchar created_by
+        timestamp created_at
+        datetime closed_at
+    }
+```
+
+---
+
+## Parser Pattern Matching
+
+```mermaid
+flowchart TD
+    A[Input:<br/>Subject + Body<br/>first 4000 chars] --> B[Concatenate]
+    B --> C[Run 3 regex patterns]
+    
+    C --> D{Pattern 1:<br/>/\b(TKT-[A-Z0-9-]{2,100})\b/i}
+    C --> E{Pattern 2:<br/>/(ticket|case|ref)...#([A-Z0-9-]+)/i}
+    C --> F{Pattern 3:<br/>/(ticket|case|ref)...[:#-]?([A-Z0-9-]{2,})/i}
+    
+    D -->|Match| G[Collect TKT-XXXX]
+    E -->|Match| H[Collect #ID or #TKT-ID]
+    F -->|Match| I[Collect ID after separator]
+    
+    G --> J[Combine all matches<br/>Remove duplicates]
+    H --> J
+    I --> J
+    
+    J --> K{Normalize each:<br/>uppercase, trim,<br/>strip #}
+    K --> L[Return array of candidates]
+    
+    L --> M{Pick first<br/>non-numeric candidate<br/>(alphanumeric > digits)}
+    M -->|Found| N[external_ticket_id = candidate]
+    M -->|None| O[external_ticket_id = NULL]
+    
+    style A fill:#e0f2fe
+    style B fill:#fef3c7
+    style C fill:#fef3c7
+    style D fill:#ddd6fe
+    style E fill:#ddd6fe
+    style F fill:#ddd6fe
+    style G fill:#fbcfe8
+    style H fill:#fbcfe8
+    style I fill:#fbcfe8
+    style J fill:#fef3c7
+    style K fill:#fef3c7
+    style L fill:#bbf7d0
+    style M fill:#ddd6fe
+    style N fill:#bbf7d0
+    style O fill:#fecaca
+```
+
+---
+
+## Cron Schedule
+
+```mermaid
+gantt
+    title Cron Jobs Schedule
+    dateFormat HH:mm
+    axisFormat %H:%M
+    
+    section Import Inbound (IMAP)
+    import_imap_tickets.php :a1, 00:00, 5m
+    repeat :a1, 5m
+    
+    section Send Outbound (SMTP)
+    process_email_outbox.php :a2, 00:00, 2m
+    repeat :a2, 2m
+```
+
+**Explanation:**
+- Import runs every 5 minutes → fetches new UIDs since last poll
+- Outbound runs every 2 minutes → sends up to 25 pending emails
+
+Both are idempotent (safe to re-run).
+
+---
+
+## Files Structure
+
+```mermaid
+graph TB
+    ROOT[noc/]
+    
+    ROOT --> CONFIG[config/]
+    ROOT --> CORE[core/]
+    ROOT --> INCLUDES[includes/]
+    ROOT --> MODULES[modules/]
+    ROOT --> SERVICES[services/]
+    ROOT --> VIEWS[views/]
+    ROOT --> CRON[cron/]
+    ROOT --> ADMIN[admin/]
+    ROOT --> DOCS[docs/]
+    
+    MODULES --> EMAIL[email/]
+    MODULES --> TICKETS[tickets/]
+    MODULES --> NOTIF[notifications/]
+    
+    EMAIL --> IMAP[imap_service.php]
+    EMAIL --> SMTP[smtp_service.php]
+    EMAIL --> PROC[email_processor.php]
+    
+    TICKETS --> TS[ticket_service.php]
+    
+    SERVICES --> ELS[email_log_service.php]
+    SERVICES --> EAS[email_account_service.php]
+    SERVICES --> EPS[email_parser_service.php]
+    SERVICES --> TLS[ticket_log_service.php]
+    
+    VIEWS --> EMAILV[emails/]
+    VIEWS --> TICKV[tickets/]
+    
+    EMAILV --> LOGS[logs.php]
+    EMAILV --> OGC[outgoing_cards.php]
+    EMAILV --> INC[incoming_cards.php]
+    
+    ADMIN --> MGMT[email_management.php]
+    
+    DOCS --> SYS[SYSTEM_OVERVIEW.md]
+    DOCS --> COMP[COMPLETE_SYSTEM_DOCUMENTATION.md]
+    DOCS --> ADMIN_REF[ADMIN_QUICK_REFERENCE.md]
+    DOCS --> IMPL[IMPLEMENTATION_SUMMARY.md]
+    DOCS --> DEPLOY[DEPLOYMENT_CHECKLIST.md]
+    DOCS --> INDEX[INDEX.md]
+    
+    style CONFIG fill:#f1f5f9
+    style CORE fill:#f1f5f9
+    style MODULES fill:#fef3c7
+    style SERVICES fill:#fef3c7
+    style VIEWS fill:#dcfce7
+    style CRON fill:#fbcfe8
+    style ADMIN fill:#ddd6fe
+    style DOCS fill:#e0e7ff
+```
+
+---
+
+## Data Transformations
+
+```mermaid
+flowchart LR
+    subgraph "Inbound: Email → Ticket"
+        A1[Raw RFC822] --> A2[Parse]
+        A2 --> A3[extract external_ticket_id]
+        A3 --> A4{Exists?}
+        A4 -->|Yes| A5[Link as reply<br/>ticket_id set]
+        A4 -->|No| A6[Create new ticket<br/>external_ticket_id=extracted<br/>issue=subject]
+    end
+    
+    subgraph "Outbound: Ticket → Email"
+        B1[Ticket status change] --> B2{Which status?}
+        B2 -->|Open| B3[No email]
+        B2 -->|In-Progress| B4[Queue In-Progress email]
+        B2 -->|Closed| B5[Queue Closed email]
+        B4 --> B6[email_outbox_log]
+        B5 --> B6
+        B6 --> B7[Cron sends]
+        B7 --> B8[External inbox]
+    end
+    
+    subgraph "Manual"
+        C1[Compose form] --> C2[Ticket selector → ticket_id]
+        C2 --> C3[email_outbox_log with ticket_id]
+        C3 --> B7
+    end
+    
+    style A1 fill:#e0f2fe
+    style A2 fill:#fef3c7
+    style A3 fill:#fef3c7
+    style A4 fill:#ddd6fe
+    style A5 fill:#bbf7d0
+    style A6 fill:#fecaca
+    style B1 fill:#e0f2fe
+    style B2 fill:#ddd6fe
+    style B3 fill:#f1f5f9
+    style B4 fill:#bbf7d0
+    style B5 fill:#bbf7d0
+    style B6 fill:#f3e8ff
+    style B7 fill:#fbcfe8
+    style B8 fill:#dcfce7
+    style C1 fill:#e0f2fe
+    style C2 fill:#fef3c7
+    style C3 fill:#f3e8ff
+```
+
+---
+
+## Troubleshooting Decision Tree
+
+```mermaid
+flowchart TD
+    A[Email issue reported] --> B{What's the symptom?}
+    
+    B -->|Not sending| C[Check Outbox status]
+    C --> D{pending?}
+    D -->|Yes| E[Cron running?<br/>Check last_checked_at]
+    E -->|No| F[Start cron job<br/>php cron/import_imap_tickets.php]
+    E -->|Yes| G[Check SMTP config<br/>Dashboard → Test SMTP]
+    
+    D -->|Failed| H[Read error_message]
+    H --> I{Error type}
+    I -->|"greeting"| J[Fix: smtp_encryption='ssl'<br/>for port 465]
+    I -->|"Authentication"| K[Update password<br/>in accounts.php]
+    I -->|"Permission"| L[Ask hosting to<br/>open outbound port]
+    I -->|Other| M[Check logs<br/>tail error_log]
+    
+    B -->|Not creating ticket| N[Check inbox_log]
+    N --> O{processing_result}
+    O -->|ignored| P[Check ignored_reason<br/>likely: no ID + no issue]
+    O -->|pending| Q[Cron down?<br/>Run import manually]
+    O -->|created/replied| R[Working fine<br/>check ticket_id link]
+    
+    B -->|Spam folder| S[SPF/DKIM missing<br/>Add DNS records]
+    
+    style A fill:#e0f2fe
+    style B fill:#ddd6fe
+    style C fill:#fef3c7
+    style D fill:#fef3c7
+    style E fill:#fef3c7
+    style F fill:#fecaca
+    style G fill:#fef3c7
+    style H fill:#fef3c7
+    style I fill:#fef3c7
+    style J fill:#bbf7d0
+    style K fill:#bbf7d0
+    style L fill:#bbf7d0
+    style M fill:#fef3c7
+    style N fill:#fef3c7
+    style O fill:#fef3c7
+    style P fill:#fecaca
+    style Q fill:#fef3c7
+    style R fill:#bbf7d0
+    style S fill:#fef3c7
+```
+
+---
+
+**Usage:**  
+1. Copy any diagram to [Mermaid Live Editor](https://mermaid.live)  
+2. Render as PNG/SVG  
+3. Paste into docs, presentations, or wikis  
+
+---
+
+**Last updated:** 2026-04-29  
+**Maintained by:** Engineering Team

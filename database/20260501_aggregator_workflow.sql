@@ -1,0 +1,38 @@
+-- Aggregator workflow migration note.
+-- Date: 2026-05-01
+--
+-- Required schema changes for base aggregator workflow: none.
+-- Optional strict external-ID tracking: run
+-- database/migrations/2026_05_01_create_external_ticket_history.sql
+-- if you want multi-ID history for vendor/client references.
+--
+-- Party-controlled email ticket creation: run
+-- database/migrations/2026_05_01_create_parties_table.sql
+-- database/migrations/2026_05_01_create_party_emails_table.sql
+-- database/migrations/2026_05_01_alter_tickets_add_party_columns.sql
+-- database/migrations/2026_05_01_create_unknown_emails_table.sql
+--
+-- This workflow reuses existing production-safe tables/columns:
+-- - tickets.ticket_id as the internal database ID
+-- - format_ticket_serial() display value LM-YYYYMMDD-NN as internal_ticket_id
+-- - tickets.external_ticket_id for vendor/customer external references only
+-- - email_inbox_log.processing_result = 'unmapped' for incoming mail that cannot be mapped
+-- - email_inbox_log.ticket_id / external_ticket_id for inbound audit mapping
+-- - email_outbox_log.ticket_id for outgoing ticket email audit mapping
+-- - ticket_logs for ticket-level audit trail
+-- - external_ticket_history for optional multi-reference history
+-- - parties / party_emails for known sender validation
+-- - unknown_emails for unregistered sender review
+--
+-- If production is already on database/20260418_ticketing_email_upgrade.sql,
+-- no ALTER TABLE is needed for this change.
+--
+-- Optional verification queries for production after deployment:
+-- SELECT COUNT(*) AS unmapped_inbox_emails
+-- FROM email_inbox_log
+-- WHERE processing_result = 'unmapped';
+--
+-- SELECT ticket_id, external_ticket_id, source, created_at
+-- FROM tickets
+-- ORDER BY ticket_id DESC
+-- LIMIT 10;

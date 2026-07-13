@@ -140,7 +140,7 @@ function system_logs_resolve_location(PDO $pdo, string $ipAddress): string
 {
     $ipAddress = trim($ipAddress);
     
-    // 1. Instantly return generic labels if running on local environment loops
+    // 1. For local/private IPs, try to resolve public IP first so we can geolocate the actual user
     if (
         $ipAddress === '127.0.0.1' || 
         $ipAddress === '::1' || 
@@ -150,7 +150,12 @@ function system_logs_resolve_location(PDO $pdo, string $ipAddress): string
         str_starts_with($ipAddress, '172.16.') ||
         str_starts_with($ipAddress, '172.31.')
     ) {
-        return 'Localhost Dev Env';
+        $publicIp = @file_get_contents('http://api.ipify.org');
+        if ($publicIp && filter_var(trim($publicIp), FILTER_VALIDATE_IP)) {
+            $ipAddress = trim($publicIp);
+        } else {
+            return 'Localhost Dev Env';
+        }
     }
 
     if ($ipAddress === '0.0.0.0' || empty($ipAddress)) {
@@ -168,7 +173,7 @@ function system_logs_resolve_location(PDO $pdo, string $ipAddress): string
 
     // 3. Production Phase: Live Geographical API Fallback
     $location = 'Remote Node';
-    $apiUrl = "https://ip-api.com/json/" . urlencode($ipAddress) . "?fields=status,city,regionName,country,zip";
+    $apiUrl = "http://ip-api.com/json/" . urlencode($ipAddress) . "?fields=status,city,regionName,country,zip";
     
     // Low timeout context window to insulate authorization pipelines from upstream bottlenecks
     $streamContext = stream_context_create([

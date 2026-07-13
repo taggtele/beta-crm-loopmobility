@@ -175,10 +175,9 @@ function system_logs_resolve_location(PDO $pdo, string $ipAddress): string
     $location = 'Remote Node';
     $apiUrl = "http://ip-api.com/json/" . urlencode($ipAddress) . "?fields=status,city,regionName,country,zip";
     
-    // Low timeout context window to insulate authorization pipelines from upstream bottlenecks
     $streamContext = stream_context_create([
         'http' => [
-            'timeout' => 1.2,
+            'timeout' => 2.5,
             'user_agent' => 'Enterprise System Audit Logger'
         ]
     ]);
@@ -196,6 +195,26 @@ function system_logs_resolve_location(PDO $pdo, string $ipAddress): string
             $locationParts = array_filter([$city, $region, $zip]);
             $locationStr = implode(', ', $locationParts);
             $location = $locationStr ? $locationStr . " ($country)" : $country;
+        }
+    }
+
+    // Fallback to secondary geolocation provider if primary API fails
+    if ($location === 'Remote Node') {
+        $fallbackUrl = "http://ipwho.is/" . urlencode($ipAddress);
+        $fallbackResponse = @file_get_contents($fallbackUrl, false, $streamContext);
+        
+        if ($fallbackResponse) {
+            $fallbackData = json_decode($fallbackResponse, true);
+            if (($fallbackData['success'] ?? false) === true) {
+                $city = $fallbackData['city'] ?? '';
+                $region = $fallbackData['region'] ?? '';
+                $zip = $fallbackData['postal'] ?? '';
+                $country = $fallbackData['country'] ?? '';
+                
+                $locationParts = array_filter([$city, $region, $zip]);
+                $locationStr = implode(', ', $locationParts);
+                $location = $locationStr ? $locationStr . " ($country)" : $country;
+            }
         }
     }
 

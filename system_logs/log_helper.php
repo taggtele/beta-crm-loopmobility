@@ -168,7 +168,7 @@ function system_logs_resolve_location(PDO $pdo, string $ipAddress): string
 
     // 3. Production Phase: Live Geographical API Fallback
     $location = 'Remote Node';
-    $apiUrl = "https://ip-api.com/json/" . urlencode($ipAddress) . "?fields=status,city,regionName,country";
+    $apiUrl = "https://ip-api.com/json/" . urlencode($ipAddress) . "?fields=status,city,regionName,country,zip";
     
     // Low timeout context window to insulate authorization pipelines from upstream bottlenecks
     $streamContext = stream_context_create([
@@ -185,9 +185,10 @@ function system_logs_resolve_location(PDO $pdo, string $ipAddress): string
         if (($geoData['status'] ?? '') === 'success') {
             $city = $geoData['city'] ?? '';
             $region = $geoData['regionName'] ?? '';
-            $country = $geoData['country'] ?? '';   
+            $zip = $geoData['zip'] ?? '';
+            $country = $geoData['country'] ?? '';
             
-            $locationParts = array_filter([$city, $region]);
+            $locationParts = array_filter([$city, $region, $zip]);
             $locationStr = implode(', ', $locationParts);
             $location = $locationStr ? $locationStr . " ($country)" : $country;
         }

@@ -171,20 +171,29 @@ function system_logs_resolve_location(PDO $pdo, string $ipAddress): string
         return (string) $cachedLocation;
     }
 
-    // 3. Production Phase: Live Geographical API Fallback
-    $location = 'Remote Node';
-    $apiUrl = "http://ip-api.com/json/" . urlencode($ipAddress) . "?fields=status,city,regionName,country,zip";
+    // 3. Production Phase: Try geolocation APIs using cURL (more reliable than file_get_contents)
+    $location = 'Location Unavailable';
+    $encodedIp = urlencode($ipAddress);
+    $userAgent = 'Enterprise System Audit Logger';
     
-    $streamContext = stream_context_create([
-        'http' => [
-            'timeout' => 2.5,
-            'user_agent' => 'Enterprise System Audit Logger'
-        ]
-    ]);
+    $curlOptions = [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_FOLLOWLOCATION => true,
+        CURLOPT_CONNECTTIMEOUT => 2,
+        CURLOPT_TIMEOUT => 4,
+        CURLOPT_USERAGENT => $userAgent,
+        CURLOPT_SSL_VERIFYPEER => false,
+        CURLOPT_HTTPHEADER => ['Accept: application/json'],
+    ];
     
-    $apiResponse = @file_get_contents($apiUrl, false, $streamContext);
+    // Primary: ip-api.com
+    $ch = curl_init("http://ip-api.com/json/{$encodedIp}?fields=status,city,regionName,country,zip");
+    curl_setopt_array($ch, $curlOptions);
+    $apiResponse = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
     
-    if ($apiResponse) {
+    if ($apiResponse && $httpCode === 200) {
         $geoData = json_decode($apiResponse, true);
         if (($geoData['status'] ?? '') === 'success') {
             $city = $geoData['city'] ?? '';
@@ -197,13 +206,16 @@ function system_logs_resolve_location(PDO $pdo, string $ipAddress): string
             $location = $locationStr ? $locationStr . " ($country)" : $country;
         }
     }
-
-    // Fallback to secondary geolocation provider if primary API fails
-    if ($location === 'Remote Node') {
-        $fallbackUrl = "http://ipwho.is/" . urlencode($ipAddress);
-        $fallbackResponse = @file_get_contents($fallbackUrl, false, $streamContext);
+    
+    // Fallback: ipwho.is
+    if ($location === 'Location Unavailable') {
+        $ch = curl_init("http://ipwho.is/{$encodedIp}");
+        curl_setopt_array($ch, $curlOptions);
+        $fallbackResponse = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
         
-        if ($fallbackResponse) {
+        if ($fallbackResponse && $httpCode === 200) {
             $fallbackData = json_decode($fallbackResponse, true);
             if (($fallbackData['success'] ?? false) === true) {
                 $city = $fallbackData['city'] ?? '';
@@ -215,14 +227,6 @@ function system_logs_resolve_location(PDO $pdo, string $ipAddress): string
                 $locationStr = implode(', ', $locationParts);
                 $location = $locationStr ? $locationStr . " ($country)" : $country;
             }
-        }
-    }
-
-    // Failover Routine: DNS pointer resolving fallback strategy
-    if ($location === 'Remote Node') {
-        $rdns = @gethostbyaddr($ipAddress);
-        if ($rdns && $rdns !== $ipAddress) {
-            $location = $rdns;
         }
     }
 

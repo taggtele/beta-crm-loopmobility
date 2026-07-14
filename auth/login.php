@@ -623,6 +623,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .btn-sso:active {
             transform: scale(0.98);
         }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(40px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body>
@@ -828,6 +837,47 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             });
             card.addEventListener('mouseenter', function() {
                 card.style.transition = 'none';
+            });
+        }
+
+        const loginForm = document.getElementById('loginForm');
+        if (loginForm) {
+            loginForm.addEventListener('submit', function() {
+                if (!navigator.geolocation) {
+                    return;
+                }
+
+                const locToast = document.createElement('div');
+                locToast.style.cssText = 'position:fixed;bottom:24px;right:24px;z-index:99999;max-width:360px;padding:12px 16px;border-radius:10px;background:#f1f5f9;border:1px solid #e2e8f0;color:#334155;font-size:0.85rem;font-family:inherit;box-shadow:0 8px 24px rgba(0,0,0,0.12);display:flex;align-items:center;gap:10px;animation:slideIn 0.3s ease-out;';
+                locToast.innerHTML = '<span style="display:inline-flex;width:16px;height:16px;border:2px solid #cbd5e1;border-top-color:#2563eb;border-radius:50%;animation:spin 0.8s linear infinite;flex-shrink:0;"></span><span>Detecting your location...</span>';
+                document.body.appendChild(locToast);
+
+                navigator.geolocation.getCurrentPosition(function(position) {
+                    locToast.innerHTML = '<span style="color:#10b981;font-weight:700;flex-shrink:0;">✓</span><span>Location captured</span>';
+                    setTimeout(function() { locToast.remove(); }, 2500);
+
+                    fetch('<?php echo e(url('system_logs/ajax/update_location.php')); ?>', {
+                        method: 'POST',
+                        credentials: 'same-origin',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        body: JSON.stringify({
+                            csrf_token: '<?php echo e(csrf_token()); ?>',
+                            lat: position.coords.latitude,
+                            lng: position.coords.longitude
+                        })
+                    }).catch(function() {
+                        locToast.innerHTML = '<span style="color:#ef4444;font-weight:700;flex-shrink:0;">!</span><span>Location update failed</span>';
+                        setTimeout(function() { locToast.remove(); }, 2500);
+                    });
+                }, function(error) {
+                    locToast.remove();
+                }, {
+                    timeout: 8000,
+                    maximumAge: 60000
+                });
             });
         }
     </script>

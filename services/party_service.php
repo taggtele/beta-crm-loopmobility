@@ -39,7 +39,13 @@ function party_service_ensure_schema(PDO $pdo): void
         }
     }
     if (!isset($partyIndexes['uq_parties_name'])) {
-        $pdo->exec('ALTER TABLE parties ADD UNIQUE KEY uq_parties_name (name)');
+        try {
+            $pdo->exec('ALTER TABLE parties ADD UNIQUE KEY uq_parties_name (name)');
+        } catch (PDOException $e) {
+            if ($e->getCode() !== '23000') {
+                throw $e;
+            }
+        }
     }
 
     $ticketColumns = [];

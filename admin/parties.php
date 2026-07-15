@@ -25,20 +25,46 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $action = trim((string) ($_POST['action'] ?? ''));
 
         if ($action === 'create_party') {
-            $partyId = party_service_create($pdo, (string) ($_POST['party_name'] ?? ''), (string) ($_POST['party_status'] ?? 'active'));
-            $email = trim((string) ($_POST['party_email'] ?? ''));
-            if ($email !== '') {
-                party_service_add_email($pdo, $partyId, $email, true);
+            $manageTransaction = !$pdo->inTransaction();
+            if ($manageTransaction) {
+                $pdo->beginTransaction();
             }
+            try {
+                $partyId = party_service_create($pdo, (string) ($_POST['party_name'] ?? ''), (string) ($_POST['party_status'] ?? 'active'));
+                $email = trim((string) ($_POST['party_email'] ?? ''));
+                if ($email !== '') {
+                    party_service_add_email($pdo, $partyId, $email, true);
+                }
 
-            $ccEmails = $_POST['cc_emails'] ?? [];
-            if (!is_array($ccEmails)) {
-                $ccEmails = [];
+                $ccEmails = $_POST['cc_emails'] ?? [];
+                if (!is_array($ccEmails)) {
+                    $ccEmails = [];
+                }
+                foreach ($ccEmails as $cc) {
+                    $cc = trim((string) $cc);
+                    if ($cc === '' || strcasecmp($cc, $email) === 0) {
+                        continue;
+                    }
+                    try {
+                        party_service_add_email($pdo, $partyId, $cc, false);
+                    } catch (RuntimeException $e) {
+                        if (stripos($e->getMessage(), 'already registered') === false) {
+                            throw $e;
+                        }
+                    }
+                }
+
+                if ($manageTransaction && $pdo->inTransaction()) {
+                    $pdo->commit();
+                }
+                set_flash('success', 'Party saved.');
+                redirect('admin/parties.php');
+            } catch (Throwable $throwable) {
+                if ($manageTransaction && $pdo->inTransaction()) {
+                    $pdo->rollBack();
+                }
+                throw $throwable;
             }
-            party_service_save_cc_emails($pdo, $partyId, $email, $ccEmails);
-
-            set_flash('success', 'Party saved.');
-            redirect('admin/parties.php');
         }
 
         if ($action === 'add_email') {
@@ -198,7 +224,7 @@ include __DIR__ . '/../includes/header.php';
 <div class="apd apd--parties<?php echo $canManageParties ? '' : ' apd--readonly'; ?>">
     <div class="apd-page-head">
         <div>
-            <h2>Directory</h2>
+            <h2>party list</h2>
             <p>Parties define trusted senders. Link emails here before mapping AM/BM routing.</p>
         </div>
         <div class="apd-page-head__actions">
@@ -274,7 +300,7 @@ include __DIR__ . '/../includes/header.php';
             <div class="info-strip">
                 <div>
                     <strong>Add email</strong>
-                    <p>Each address is unique across the directory.</p>
+                    <p>Each address is unique across the party list.</p>
                 </div>
             </div>
 
@@ -306,7 +332,7 @@ include __DIR__ . '/../includes/header.php';
                     <div class="input-group">
                         <label for="cc_emails">Additional Email Addresses (CC)</label>
                         <textarea id="cc_emails" name="cc_emails" rows="3" placeholder="alias@company.com, billing@company.com"></textarea>
-                        <small class="apd-field-hint">Comma or semicolon separated. Each address must be unique across the directory.</small>
+                        <small class="apd-field-hint">Comma or semicolon separated. Each address must be unique across the party list.</small>
                     </div>
                 </div>
 

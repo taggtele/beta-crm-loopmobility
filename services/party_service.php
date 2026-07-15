@@ -15,24 +15,8 @@ function party_service_ensure_schema(PDO $pdo): void
             status VARCHAR(20) NOT NULL DEFAULT \'active\',
             created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+            UNIQUE KEY uq_parties_name (name),
             INDEX idx_parties_status_name (status, name)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci'
-    );
-
-    $pdo->exec(
-        'CREATE TABLE IF NOT EXISTS party_emails (
-            id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
-            party_id INT UNSIGNED NOT NULL,
-            email VARCHAR(190) NOT NULL,
-            is_primary TINYINT(1) NOT NULL DEFAULT 0,
-            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
-            UNIQUE KEY uq_party_emails_email (email),
-            INDEX idx_party_emails_party (party_id),
-            INDEX idx_party_emails_primary (party_id, is_primary),
-            CONSTRAINT fk_party_emails_party
-                FOREIGN KEY (party_id) REFERENCES parties (id)
-                ON DELETE CASCADE
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci'
     );
 
@@ -45,6 +29,17 @@ function party_service_ensure_schema(PDO $pdo): void
     }
     if (!isset($partyColumns['country'])) {
         $pdo->exec('ALTER TABLE parties ADD COLUMN country VARCHAR(120) NULL DEFAULT NULL AFTER name');
+    }
+
+    $partyIndexes = [];
+    foreach ($pdo->query('SHOW INDEX FROM parties')->fetchAll() as $index) {
+        $key = (string) ($index['Key_name'] ?? '');
+        if ($key !== '') {
+            $partyIndexes[$key] = true;
+        }
+    }
+    if (!isset($partyIndexes['uq_parties_name'])) {
+        $pdo->exec('ALTER TABLE parties ADD UNIQUE KEY uq_parties_name (name)');
     }
 
     $ticketColumns = [];
@@ -145,6 +140,12 @@ function party_service_create(PDO $pdo, string $name, string $status = 'active')
         throw new RuntimeException('Invalid party status.');
     }
 
+    $existing = $pdo->prepare('SELECT id FROM parties WHERE LOWER(name) = LOWER(:name) LIMIT 1');
+    $existing->execute([':name' => $name]);
+    if ($existing->fetchColumn()) {
+        throw new RuntimeException('A party with this name already exists.');
+    }
+
     $stmt = $pdo->prepare(
         'INSERT INTO parties (name, status, created_at)
          VALUES (:name, :status, NOW())'
@@ -166,6 +167,12 @@ function party_service_update(PDO $pdo, int $partyId, string $name, string $stat
 
     if ($partyId <= 0 || $name === '' || !in_array($status, ['active', 'inactive'], true)) {
         throw new RuntimeException('Valid party details are required.');
+    }
+
+    $existing = $pdo->prepare('SELECT id FROM parties WHERE LOWER(name) = LOWER(:name) AND id != :id LIMIT 1');
+    $existing->execute([':name' => $name, ':id' => $partyId]);
+    if ($existing->fetchColumn()) {
+        throw new RuntimeException('A party with this name already exists.');
     }
 
     $stmt = $pdo->prepare(

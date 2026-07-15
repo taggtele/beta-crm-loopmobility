@@ -32,9 +32,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             try {
                 $partyId = party_service_create($pdo, (string) ($_POST['party_name'] ?? ''), (string) ($_POST['party_status'] ?? 'active'));
                 $email = trim((string) ($_POST['party_email'] ?? ''));
-                if ($email !== '') {
-                    party_service_add_email($pdo, $partyId, $email, true);
+                if ($email === '') {
+                    throw new RuntimeException('Primary email is required.');
                 }
+                party_service_add_email($pdo, $partyId, $email, true);
 
                 $ccEmails = $_POST['cc_emails'] ?? [];
                 if (!is_array($ccEmails)) {
@@ -272,7 +273,7 @@ include __DIR__ . '/../includes/header.php';
                     </div>
                     <div class="input-group">
                         <label for="party_email">Primary email</label>
-                        <input type="email" id="party_email" name="party_email" placeholder="Optional">
+                        <input type="email" id="party_email" name="party_email" placeholder="Required" required>
                     </div>
                     <div class="input-group" id="apd-cc-emails-group">
                         <label>Additional emails(optional)</label>

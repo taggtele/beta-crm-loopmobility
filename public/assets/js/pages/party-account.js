@@ -945,8 +945,6 @@ function fill(x) {
         if (obType) obType.value = x.opening_balance_type || '';
         var obAmount = qs('#pa-form-opening-balance');
         var obTypeEl = qs('#pa-form-opening-balance-type');
-        if (obAmount) obAmount.disabled = true;
-        if (obTypeEl) obTypeEl.disabled = true;
         syncOpeningBalancePreview();
         qs('#pa-form-status').value = x.status || 'draft';
 
@@ -1151,11 +1149,13 @@ function fill(x) {
         var f = qs('#pa-account-form');
         var out = {};
         ['party_name', 'party_email', 'address', 'bank_name', 'account_holder_name',
-            'account_number', 'ifsc_swift_code', 'iban_number', 'bank_branch_address', 'credit_limit', 'opening_balance',
+            'account_number', 'ifsc_swift_code', 'iban_number', 'bank_branch_address', 'credit_limit',
             'payment_terms', 'notes', 'assistant_manager_name', 'business_manager_name'].forEach(function (nm) {
             var el = f.elements.namedItem(nm);
             if (el && el.value.trim()) out[nm] = el.value.trim();
         });
+        out.opening_balance = (f.elements.namedItem('opening_balance') || {}).value || '';
+        out.opening_balance = String(out.opening_balance).replace(/,/g, '');
         var obTypeEl = f.elements.namedItem('opening_balance_type');
         if (obTypeEl && obTypeEl.value) out.opening_balance_type = obTypeEl.value;
         var countryEl = f.elements.namedItem('country');
@@ -1173,7 +1173,7 @@ function fill(x) {
         out.status = (st && st.value) || 'draft';
         out.party_name = f.elements.namedItem('party_name').value.trim();
         if (out.credit_limit) out.credit_limit = String(out.credit_limit).replace(/,/g, '');
-        if (out.opening_balance) out.opening_balance = String(out.opening_balance).replace(/,/g, '');
+        if (out.opening_balance !== '') out.opening_balance = String(out.opening_balance).replace(/,/g, '');
         var extras = [];
         qsa('.pa-extra-email-input', f).forEach(function (el) {
             var v = el.value.trim();

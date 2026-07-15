@@ -110,8 +110,6 @@ public function update(int $id, array $input, array $currentUser): void
             $normalized['opening_balance_type'] = null;
         } else {
             $normalized['currency'] = $primaryCurrency;
-            $normalized['opening_balance'] = $existing['opening_balance'];
-            $normalized['opening_balance_type'] = $existing['opening_balance_type'];
         }
 
         $errors = party_account_validate_payload($normalized, true);

@@ -241,7 +241,15 @@ include __DIR__ . '/../includes/header.php';
             <a href="<?php echo e($quickReplyVendorUrl); ?>" class="btn btn-outline">Reply to Vendor</a>
         <?php endif; ?>
         <?php if (!$vendorEmailInitiated && $assignedVendorEmail !== ''): ?>
-            <a href="<?php echo e(url('emails/logs.php?open_compose=1&compose_ticket_id=' . (int) $ticket['ticket_id'] . '&compose_to=' . urlencode($assignedVendorEmail))); ?>" class="btn btn-primary">Raise To Vendor</a>
+            <?php
+            $raiseToVendorQuery = http_build_query([
+                'open_compose' => '1',
+                'compose_ticket_id' => (int) $ticket['ticket_id'],
+                'compose_to' => $assignedVendorEmail,
+                'compose_party_id' => (int) ($ticket['assigned_vendor_id'] ?? 0),
+            ]);
+            ?>
+            <a href="<?php echo e(url('emails/logs.php?' . $raiseToVendorQuery)); ?>" class="btn btn-primary">Raise To Vendor</a>
         <?php endif; ?>
         <a href="<?php echo e(url('emails/logs.php?ticket_id=' . (int) $ticket['ticket_id'])); ?>" class="btn btn-outline">Open Email Logs</a>
     </div>

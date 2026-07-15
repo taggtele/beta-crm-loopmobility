@@ -273,9 +273,10 @@ include __DIR__ . '/../includes/header.php';
                     </div>
                     <div class="input-group">
                         <label for="am_is_active">Status</label>
-                        <label class="checkbox-line">
+                        <label class="apd-checkbox">
                             <input type="checkbox" id="am_is_active" name="am_is_active" <?php echo (int) ($_POST ? isset($_POST['am_is_active']) : ($editAm['is_active'] ?? 1)) === 1 ? 'checked' : ''; ?>>
-                            Active
+                            <span class="apd-checkbox__box" aria-hidden="true"></span>
+                            <span class="apd-checkbox__label">Active</span>
                         </label>
                     </div>
                 </div>
@@ -356,9 +357,10 @@ include __DIR__ . '/../includes/header.php';
 
                         <div class="input-group">
                             <label for="mapping_is_active">Mapping</label>
-                            <label class="checkbox-line">
+                            <label class="apd-checkbox">
                                 <input type="checkbox" id="mapping_is_active" name="mapping_is_active" <?php echo (int) ($_POST ? isset($_POST['mapping_is_active']) : ($editMapping['mapping_active'] ?? 1)) === 1 ? 'checked' : ''; ?>>
-                                Active
+                                <span class="apd-checkbox__box" aria-hidden="true"></span>
+                                <span class="apd-checkbox__label">Active</span>
                             </label>
                         </div>
                     </fieldset>

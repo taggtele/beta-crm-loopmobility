@@ -48,6 +48,17 @@ function party_service_ensure_schema(PDO $pdo): void
         }
     }
 
+    $partyColumns = [];
+    foreach ($pdo->query('SHOW COLUMNS FROM parties')->fetchAll() as $column) {
+        $field = (string) ($column['Field'] ?? '');
+        if ($field !== '') {
+            $partyColumns[$field] = true;
+        }
+    }
+    if (!isset($partyColumns['deleted_at'])) {
+        $pdo->exec('ALTER TABLE parties ADD COLUMN deleted_at DATETIME NULL DEFAULT NULL AFTER updated_at');
+    }
+
     $ticketColumns = [];
     foreach ($pdo->query('SHOW COLUMNS FROM tickets')->fetchAll() as $column) {
         $ticketColumns[(string) ($column['Field'] ?? '')] = true;
@@ -194,6 +205,18 @@ function party_service_update(PDO $pdo, int $partyId, string $name, string $stat
     ]);
 }
 
+function party_service_soft_delete(PDO $pdo, int $partyId): void
+{
+    party_service_ensure_schema($pdo);
+
+    if ($partyId <= 0) {
+        throw new RuntimeException('Valid party is required.');
+    }
+
+    $stmt = $pdo->prepare('UPDATE parties SET deleted_at = NOW() WHERE id = :id AND deleted_at IS NULL');
+    $stmt->execute([':id' => $partyId]);
+}
+
 function party_service_add_email(PDO $pdo, int $partyId, string $email, bool $isPrimary = false): void
 {
     party_service_ensure_schema($pdo);
@@ -287,7 +310,7 @@ function party_service_list(PDO $pdo, string $search = '', int $limit = 150, str
 {
     party_service_ensure_schema($pdo);
 
-    $where = ' WHERE 1=1';
+    $where = ' WHERE p.deleted_at IS NULL';
     $params = [];
     $search = trim($search);
     $status = strtolower(trim($status));
@@ -337,6 +360,7 @@ function party_service_active_options(PDO $pdo): array
          FROM parties p
          LEFT JOIN party_emails pe ON pe.party_id = p.id
          WHERE p.status = :status
+         AND p.deleted_at IS NULL
          GROUP BY p.id, p.name, p.country, p.status
          ORDER BY p.name ASC
          LIMIT 250'
@@ -349,6 +373,103 @@ function party_service_active_options(PDO $pdo): array
 /**
  * @return list<array{email: string, is_primary: int}>
  */
+function party_service_update_emails(PDO $pdo, int $partyId, string $primaryEmail, array $ccEmails): void
+{
+    party_service_ensure_schema($pdo);
+
+    $partyId = (int) $partyId;
+    if ($partyId <= 0) {
+        throw new RuntimeException('Valid party is required.');
+    }
+
+    $primaryNorm = strtolower(trim($primaryEmail));
+    $primaryTrimmed = trim($primaryEmail);
+    if ($primaryTrimmed === '' || !filter_var($primaryTrimmed, FILTER_VALIDATE_EMAIL)) {
+        throw new RuntimeException('Valid primary email is required.');
+    }
+
+    $manageTransaction = !$pdo->inTransaction();
+    if ($manageTransaction) {
+        $pdo->beginTransaction();
+    }
+    try {
+        $deleteStmt = $pdo->prepare('DELETE FROM party_emails WHERE party_id = :party_id');
+        $deleteStmt->execute([':party_id' => $partyId]);
+
+        $insertStmt = $pdo->prepare(
+            'INSERT INTO party_emails (party_id, email, is_primary, created_at)
+             VALUES (:party_id, :email, :is_primary, NOW())'
+        );
+
+        try {
+            $insertStmt->execute([
+                ':party_id' => $partyId,
+                ':email' => $primaryTrimmed,
+                ':is_primary' => 1,
+            ]);
+        } catch (PDOException $e) {
+            if ($e->getCode() === '23000') {
+                throw new RuntimeException('This email is already registered with a party.');
+            }
+            throw $e;
+        }
+
+        $seen = [];
+        $seen[$primaryNorm] = true;
+
+        foreach ($ccEmails as $cc) {
+            $cc = trim((string) $cc);
+            if ($cc === '') {
+                continue;
+            }
+            $key = strtolower($cc);
+            if ($key === $primaryNorm || isset($seen[$key])) {
+                continue;
+            }
+            if (!filter_var($cc, FILTER_VALIDATE_EMAIL)) {
+                continue;
+            }
+            $seen[$key] = true;
+            try {
+                $insertStmt->execute([
+                    ':party_id' => $partyId,
+                    ':email' => $cc,
+                    ':is_primary' => 0,
+                ]);
+            } catch (PDOException $e) {
+                if ($e->getCode() === '23000') {
+                    continue;
+                }
+                throw $e;
+            }
+        }
+
+        if ($manageTransaction) {
+            $pdo->commit();
+        }
+    } catch (Throwable $throwable) {
+        if ($manageTransaction && $pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        throw $throwable;
+    }
+}
+
+function party_service_get_emails(PDO $pdo, int $partyId): array
+{
+    party_service_ensure_schema($pdo);
+
+    $stmt = $pdo->prepare(
+        'SELECT id, email, is_primary, created_at
+         FROM party_emails
+         WHERE party_id = :party_id
+         ORDER BY is_primary DESC, email ASC'
+    );
+    $stmt->execute([':party_id' => $partyId]);
+
+    return $stmt->fetchAll();
+}
+
 function party_service_party_emails_ordered(PDO $pdo, int $partyId): array
 {
     party_service_ensure_schema($pdo);

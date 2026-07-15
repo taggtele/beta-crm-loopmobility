@@ -65,6 +65,40 @@ try {
         exit;
     }
 
+    if ($action === 'get_emails') {
+        $partyId = (int) ($_GET['party_id'] ?? 0);
+        if ($partyId <= 0) {
+            http_response_code(400);
+            echo json_encode(['ok' => false, 'error' => 'Party ID is required.'], JSON_UNESCAPED_SLASHES);
+            exit;
+        }
+
+        $emails = party_service_get_emails($pdo, $partyId);
+        $primaryEmail = '';
+        $ccEmails = [];
+        foreach ($emails as $er) {
+            $email = (string) ($er['email'] ?? '');
+            if ($email === '') {
+                continue;
+            }
+            if ((int) ($er['is_primary'] ?? 0) === 1) {
+                $primaryEmail = $email;
+            } else {
+                $ccEmails[] = $email;
+            }
+        }
+
+        echo json_encode(
+            [
+                'ok' => true,
+                'primary_email' => $primaryEmail,
+                'cc_emails' => $ccEmails,
+            ],
+            JSON_UNESCAPED_SLASHES
+        );
+        exit;
+    }
+
     http_response_code(400);
     echo json_encode(['ok' => false, 'error' => 'Unknown action.'], JSON_UNESCAPED_SLASHES);
 } catch (Throwable $throwable) {

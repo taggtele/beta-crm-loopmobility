@@ -1,7 +1,20 @@
 /**
- * Party Management + Party AM Mapping — enterprise admin UI
+ * Party Management + Party AM Mapping — modern admin UI
  * Scoped under .apd (admin party directory)
  */
+
+/* ------------------------------------------------------------------------- */
+/* Design tokens                                                             */
+/* ------------------------------------------------------------------------- */
+
+.apd {
+    --apd-radius: 14px;
+    --apd-row: 34px;
+    --apd-font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--text);
+}
 
 /* ------------------------------------------------------------------------- */
 /* Shell & typography                                                        */
@@ -14,18 +27,10 @@
 
 .apd-field-hint {
     display: block;
-    margin-top: 4px;
+    margin-top: 6px;
     font-size: 0.75rem;
     color: var(--muted);
-}
-
-.apd {
-    --apd-radius: 10px;
-    --apd-row: 34px;
-    --apd-font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-    font-size: 14px;
-    line-height: 1.45;
-    color: var(--text);
+    line-height: 1.4;
 }
 
 .apd .apd-page-head {
@@ -33,84 +38,94 @@
     flex-wrap: wrap;
     align-items: flex-start;
     justify-content: space-between;
-    gap: 12px 20px;
-    margin-bottom: 14px;
+    gap: 12px 24px;
+    margin-bottom: 20px;
+    padding: 4px 0;
 }
 
 .apd .apd-page-head h2 {
-    margin: 0 0 4px;
-    font-size: 1.15rem;
-    font-weight: 650;
-    letter-spacing: -0.02em;
+    margin: 0 0 6px;
+    font-size: 1.35rem;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    color: var(--text);
 }
 
 .apd .apd-page-head p {
     margin: 0;
-    max-width: 52ch;
+    max-width: 60ch;
     color: var(--muted);
-    font-size: 0.8125rem;
+    font-size: 0.875rem;
+    line-height: 1.5;
 }
 
 .apd .apd-page-head__actions {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
+    gap: 10px;
     align-items: center;
 }
 
 /* ------------------------------------------------------------------------- */
-/* Stats strip (compact)                                                     */
+/* Stats strip                                                               */
 /* ------------------------------------------------------------------------- */
 
 .apd-stats {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-    gap: 10px;
-    margin-bottom: 14px;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 12px;
+    margin-bottom: 20px;
 }
 
 .apd-stat {
     background: var(--panel);
     border: 1px solid var(--border);
     border-radius: var(--apd-radius);
-    padding: 10px 12px;
+    padding: 14px 16px;
     box-shadow: var(--shadow-sm);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.apd-stat:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
 }
 
 .apd-stat__label {
     display: block;
-    font-size: 0.65rem;
-    font-weight: 600;
+    font-size: 0.7rem;
+    font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.06em;
+    letter-spacing: 0.08em;
     color: var(--muted);
-    margin-bottom: 2px;
+    margin-bottom: 4px;
 }
 
 .apd-stat__value {
-    font-size: 1.35rem;
+    font-size: 1.5rem;
     font-weight: 700;
-    letter-spacing: -0.03em;
+    letter-spacing: -0.04em;
     line-height: 1.1;
+    color: var(--text);
 }
 
 .apd-stat__hint {
-    font-size: 0.7rem;
+    font-size: 0.75rem;
     color: var(--muted);
-    margin-top: 2px;
+    margin-top: 4px;
 }
 
 /* ------------------------------------------------------------------------- */
-/* Compact filter bar                                                        */
+/* Filter bar                                                                */
 /* ------------------------------------------------------------------------- */
 
 .apd-filter-bar {
     display: flex;
     flex-wrap: wrap;
     align-items: flex-end;
-    gap: 10px 12px;
-    padding: 10px 12px;
-    margin-bottom: 12px;
+    gap: 12px 16px;
+    padding: 14px 16px;
+    margin-bottom: 16px;
     background: var(--panel);
     border: 1px solid var(--border);
     border-radius: var(--apd-radius);
@@ -119,40 +134,76 @@
 
 .apd-filter-bar .input-group {
     margin: 0;
-    flex: 1 1 180px;
+    flex: 1 1 200px;
     min-width: 0;
 }
 
 .apd-filter-bar .input-group label {
-    font-size: 0.65rem;
-    font-weight: 600;
+    display: block;
+    font-size: 0.7rem;
+    font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.06em;
     color: var(--muted);
-    margin-bottom: 4px;
+    margin-bottom: 6px;
 }
 
 .apd-filter-bar .input-group input,
 .apd-filter-bar .input-group select {
-    min-height: 34px;
-    padding: 6px 10px;
-    font-size: 0.8125rem;
-    border-radius: 8px;
+    width: 100%;
+    min-height: 38px;
+    padding: 8px 12px;
+    font-size: 0.875rem;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--panel);
+    color: var(--text);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.apd-filter-bar .input-group input:focus,
+.apd-filter-bar .input-group select:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.12);
 }
 
 .apd-filter-bar__actions {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
+    gap: 10px;
     align-items: center;
     flex: 0 0 auto;
     margin-left: auto;
 }
 
 .apd-filter-bar__actions .btn {
-    min-height: 34px;
-    padding: 6px 12px;
-    font-size: 0.8125rem;
+    min-height: 38px;
+    padding: 8px 16px;
+    font-size: 0.875rem;
+}
+
+.apd-search-loading {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 14px;
+    color: var(--primary);
+    animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 0.4; }
+    50% { opacity: 1; }
+}
+
+.apd-filter-bar .input-group {
+    position: relative;
+}
+
+.apd-filter-bar .input-group input {
+    padding-right: 28px;
 }
 
 /* ------------------------------------------------------------------------- */
@@ -161,9 +212,9 @@
 
 .apd-forms {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
-    gap: 12px;
-    margin-bottom: 14px;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
+    gap: 16px;
+    margin-bottom: 20px;
 }
 
 .apd-forms .form-card {
@@ -172,75 +223,486 @@
     border: 1px solid var(--border);
     border-radius: var(--apd-radius);
     box-shadow: var(--shadow-sm);
+    transition: box-shadow 0.2s ease;
+}
+
+.apd-forms .form-card:hover {
+    box-shadow: var(--shadow-md);
 }
 
 .apd-forms .info-strip {
-    padding: 10px 12px;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+    background: var(--panel-soft);
+    border-radius: var(--apd-radius) var(--apd-radius) 0 0;
 }
 
 .apd-forms .info-strip strong {
-    font-size: 0.8125rem;
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 2px;
 }
 
 .apd-forms .info-strip p {
-    font-size: 0.75rem;
-    margin: 4px 0 0;
+    font-size: 0.8rem;
+    margin: 0;
     color: var(--muted);
+    line-height: 1.4;
 }
 
 .apd-forms .form-grid {
     display: grid;
-    gap: 10px 12px;
-    padding: 0 12px 12px;
+    gap: 14px 16px;
+    padding: 16px;
 }
 
 .apd-forms .input-group {
-    display: block;
-}
-
-.apd-forms .form-actions {
-    padding: 0 12px 12px;
-    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
 }
 
 .apd-forms .input-group label {
-    font-size: 0.7rem;
+    font-size: 0.8rem;
     font-weight: 600;
+    color: var(--muted-strong);
 }
 
 .apd-forms .input-group input,
 .apd-forms .input-group select,
 .apd-forms .input-group textarea {
-    min-height: 36px;
-    font-size: 0.8125rem;
+    width: 100%;
+    min-height: 40px;
+    padding: 10px 14px;
+    font-size: 0.875rem;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--panel);
+    color: var(--text);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.apd-forms .input-group input:focus,
+.apd-forms .input-group select:focus,
+.apd-forms .input-group textarea:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.1);
+}
+
+.apd-forms .input-group input[type="email"]:invalid:not(:placeholder-shown) {
+    border-color: var(--danger);
+}
+
+.apd-forms .form-actions {
+    padding: 0 16px 16px;
+    margin: 0;
 }
 
 .apd-cc-emails-list {
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    margin-bottom: 8px;
+    gap: 10px;
+    margin-bottom: 10px;
 }
 
 .apd-cc-email-row {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
+    gap: 10px;
     align-items: center;
+    padding: 8px;
+    background: var(--panel-soft);
+    border-radius: 10px;
+    border: 1px solid var(--border);
 }
 
 .apd-cc-email-row .apd-cc-email-input {
     flex: 1 1 200px;
     min-width: 0;
-    min-height: 36px;
+    min-height: 38px;
+    padding: 8px 12px;
+    font-size: 0.875rem;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--panel);
+    color: var(--text);
+}
+
+.apd-cc-email-row .apd-cc-email-input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.1);
+}
+
+.apd-cc-email-remove {
+    flex: 0 0 auto;
+}
+
+/* ------------------------------------------------------------------------- */
+/* Table shell                                                               */
+/* ------------------------------------------------------------------------- */
+
+.apd-table-card {
+    margin-top: 16px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--apd-radius);
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+}
+
+.apd-table-card__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px 16px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    background: var(--panel-muted);
+}
+
+.apd-table-card__head h2 {
+    margin: 0;
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--text);
+}
+
+.apd-table-card__head p {
+    margin: 0;
+    font-size: 0.8rem;
+    color: var(--muted);
+}
+
+.apd-table-scroll {
+    max-height: min(58vh, 600px);
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.apd-table {
+    width: 100%;
+    border-collapse: collapse;
     font-size: 0.8125rem;
 }
 
-/* Mapping: visual grouping for Party vs routing */
+.apd-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    padding: 8px 12px;
+    text-align: left;
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+    background: var(--panel-muted);
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+}
+
+.apd-table tbody td {
+    padding: 8px 12px;
+    vertical-align: middle;
+    border-bottom: 1px solid var(--border);
+    transition: background 0.12s ease;
+}
+
+.apd-table tbody tr {
+    transition: background 0.12s ease;
+}
+
+.apd-table tbody tr:hover td {
+    background: var(--primary-soft);
+}
+
+html.theme-dark .apd-table tbody tr:hover td {
+    background: rgba(96, 165, 250, 0.08);
+}
+
+.apd-table .apd-td-muted {
+    color: var(--muted);
+    font-size: 0.75rem;
+    margin-top: 1px;
+}
+
+.apd-table .apd-title {
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1.25;
+    font-size: 0.85rem;
+}
+
+.apd-table .apd-mono {
+    font-family: var(--apd-font-mono);
+    font-size: 0.75rem;
+    color: var(--muted);
+}
+
+.apd-table .apd-created {
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.01em;
+    color: var(--muted);
+    font-size: 0.8rem;
+}
+
+/* ------------------------------------------------------------------------- */
+/* Table actions / inline edit row                                           */
+/* ------------------------------------------------------------------------- */
+
+.apd-actions {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 6px;
+}
+
+.apd-actions .btn {
+    padding: 5px 10px;
+    font-size: 0.75rem;
+    min-height: 28px;
+    white-space: nowrap;
+    border-radius: 8px;
+}
+
+/* ------------------------------------------------------------------------- */
+/* Status badges                                                             */
+/* ------------------------------------------------------------------------- */
+/* Modern checkbox (Stripe / Linear style)                                   */
+/* ------------------------------------------------------------------------- */
+
+.apd-checkbox {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--muted-strong);
+    user-select: none;
+}
+
+.apd-checkbox input[type="checkbox"] {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.apd-checkbox__box {
+    width: 20px;
+    height: 20px;
+    border-radius: 6px;
+    border: 1.5px solid #cbd5e1;
+    background: #ffffff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 200ms ease, border-color 200ms ease, box-shadow 200ms ease;
+    flex-shrink: 0;
+}
+
+.apd-checkbox input[type="checkbox"]:checked + .apd-checkbox__box {
+    background: #2563eb;
+    border-color: #2563eb;
+}
+
+.apd-checkbox input[type="checkbox"]:checked + .apd-checkbox__box::after {
+    content: '';
+    width: 5px;
+    height: 9px;
+    border: solid #ffffff;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+    margin-top: -1px;
+}
+
+.apd-checkbox:hover .apd-checkbox__box {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.08);
+}
+
+.apd-checkbox input[type="checkbox"]:focus-visible + .apd-checkbox__box {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.25);
+}
+
+.apd-checkbox__label {
+    line-height: 1.2;
+}
+
+.apd-actions .btn {
+    padding: 6px 12px;
+    font-size: 0.8rem;
+    min-height: 32px;
+    white-space: nowrap;
+    border-radius: 8px;
+}
+
+.apd-party-update {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    justify-content: flex-end;
+}
+
+.apd-party-update input[type="text"] {
+    min-width: 140px;
+    flex: 1 1 160px;
+    max-width: 240px;
+    min-height: 34px;
+    padding: 6px 10px;
+    font-size: 0.8125rem;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--panel);
+    color: var(--text);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.apd-party-update input[type="text"]:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.1);
+}
+
+.apd-party-update select {
+    min-height: 34px;
+    padding: 6px 10px;
+    font-size: 0.8rem;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--panel);
+    color: var(--text);
+}
+
+.apd-party-update .btn {
+    min-height: 34px;
+}
+
+.btn-ghost {
+    border: none;
+    background: transparent;
+    color: var(--muted-strong);
+    font-weight: 600;
+    cursor: pointer;
+    padding: 6px 10px;
+    border-radius: 8px;
+    transition: background 0.18s ease, color 0.18s ease;
+}
+
+.btn-ghost:hover {
+    background: var(--panel-soft);
+}
+
+.apd-party-delete {
+    margin-top: 6px;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.apd-party-delete .btn {
+    color: var(--danger);
+    background: var(--danger-soft);
+    border: 1px solid transparent;
+    min-height: 32px;
+    padding: 5px 12px;
+    font-size: 0.8rem;
+}
+
+.apd-party-delete .btn:hover {
+    background: #fecaca;
+    transform: translateY(-1px);
+}
+
+html.theme-dark .apd-party-delete .btn {
+    color: #fca5a5;
+    background: rgba(239, 68, 68, 0.12);
+}
+
+html.theme-dark .apd-party-delete .btn:hover {
+    background: rgba(239, 68, 68, 0.22);
+}
+
+/* ------------------------------------------------------------------------- */
+/* Status badges                                                             */
+/* ------------------------------------------------------------------------- */
+
+.badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    line-height: 1.4;
+    white-space: nowrap;
+}
+
+.badge-open {
+    background: var(--success-soft);
+    color: var(--success);
+}
+
+.badge-medium {
+    background: var(--panel-muted);
+    color: var(--muted-strong);
+    border: 1px solid var(--border);
+}
+
+/* ------------------------------------------------------------------------- */
+/* Email preview in table                                                    */
+/* ------------------------------------------------------------------------- */
+
+.apd-email-preview {
+    max-width: 400px;
+    color: var(--muted-strong);
+    font-size: 0.82rem;
+    line-height: 1.4;
+    word-break: break-word;
+}
+
+/* ------------------------------------------------------------------------- */
+/* Empty state                                                               */
+/* ------------------------------------------------------------------------- */
+
+.apd-empty {
+    text-align: center;
+    padding: 36px 20px !important;
+    color: var(--muted);
+    font-size: 0.9rem;
+}
+
+/* ------------------------------------------------------------------------- */
+/* Read-only banner                                                          */
+/* ------------------------------------------------------------------------- */
+
+.apd-readonly-banner {
+    margin-bottom: 16px;
+}
+
+.apd--readonly .apd-forms {
+    display: none;
+}
+
+/* ------------------------------------------------------------------------- */
+/* Misc                                                                      */
+/* ------------------------------------------------------------------------- */
+
 .apd-mapping-split {
     display: grid;
     grid-template-columns: 1fr;
-    gap: 12px;
+    gap: 16px;
 }
 
 @media (min-width: 900px) {
@@ -251,14 +713,14 @@
 
 .apd-fieldset {
     border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 10px 12px;
+    border-radius: 10px;
+    padding: 12px 14px;
     background: var(--panel-soft);
 }
 
 .apd-fieldset legend {
-    padding: 0 6px;
-    font-size: 0.65rem;
+    padding: 0 8px;
+    font-size: 0.7rem;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.07em;
@@ -278,10 +740,10 @@
     z-index: 40;
     max-height: 240px;
     overflow-y: auto;
-    margin-top: 4px;
+    margin-top: 6px;
     background: var(--panel);
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: 10px;
     box-shadow: var(--shadow-md);
 }
 
@@ -289,7 +751,7 @@
     display: block;
     width: 100%;
     text-align: left;
-    padding: 8px 12px;
+    padding: 10px 14px;
     border: 0;
     background: transparent;
     cursor: pointer;
@@ -311,102 +773,6 @@
     font-family: var(--apd-font-mono);
 }
 
-/* ------------------------------------------------------------------------- */
-/* Table shell — sticky header, dense rows                                   */
-/* ------------------------------------------------------------------------- */
-
-.apd-table-card {
-    margin-top: 12px;
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: var(--apd-radius);
-    box-shadow: var(--shadow-sm);
-    overflow: hidden;
-}
-
-.apd-table-card__head {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 8px 16px;
-    padding: 10px 12px;
-    border-bottom: 1px solid var(--border);
-    background: var(--panel-muted);
-}
-
-.apd-table-card__head h2 {
-    margin: 0;
-    font-size: 0.9rem;
-    font-weight: 650;
-}
-
-.apd-table-card__head p {
-    margin: 0;
-    font-size: 0.75rem;
-    color: var(--muted);
-}
-
-.apd-table-scroll {
-    max-height: min(62vh, 640px);
-    overflow: auto;
-    -webkit-overflow-scrolling: touch;
-}
-
-.apd-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 0.8125rem;
-}
-
-.apd-table thead th {
-    position: sticky;
-    top: 0;
-    z-index: 2;
-    padding: 8px 10px;
-    text-align: left;
-    font-size: 0.65rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: var(--muted-strong);
-    background: var(--panel);
-    border-bottom: 1px solid var(--border);
-    box-shadow: 0 1px 0 var(--border);
-    white-space: nowrap;
-}
-
-.apd-table tbody td {
-    padding: 7px 10px;
-    vertical-align: middle;
-    border-bottom: 1px solid var(--border);
-}
-
-.apd-table tbody tr:hover td {
-    background: var(--primary-soft);
-}
-
-html.theme-dark .apd-table tbody tr:hover td {
-    background: rgba(96, 165, 250, 0.08);
-}
-
-.apd-table .apd-td-muted {
-    color: var(--muted);
-    font-size: 0.75rem;
-}
-
-.apd-table .apd-title {
-    font-weight: 600;
-    color: var(--text);
-    line-height: 1.25;
-}
-
-.apd-table .apd-mono {
-    font-family: var(--apd-font-mono);
-    font-size: 0.78rem;
-}
-
-/* Routing column (AM / BM) */
 .apd-route-stack {
     display: flex;
     flex-direction: column;
@@ -451,36 +817,6 @@ html.theme-dark .apd-table tbody tr:hover td {
     min-width: 0;
 }
 
-.apd-actions {
-    display: flex;
-    flex-direction: row;
-    flex-wrap: nowrap;
-    align-items: center;
-    justify-content: flex-end;
-    gap: 8px;
-}
-
-.apd-actions .btn {
-    padding: 4px 10px;
-    font-size: 0.75rem;
-    min-height: 28px;
-    white-space: nowrap;
-}
-
-/* Override global .inline-form (column + min-width) so Edit + Delete stay on one row, vertically centered */
-.apd-actions form.inline-form {
-    display: inline-flex;
-    flex-direction: row;
-    flex-wrap: nowrap;
-    align-items: center;
-    justify-content: center;
-    gap: 0;
-    min-width: 0;
-    width: auto;
-    margin: 0;
-    vertical-align: middle;
-}
-
 .apd-table tbody td:last-child {
     vertical-align: middle;
     text-align: right;
@@ -491,51 +827,9 @@ html.theme-dark .apd-table tbody tr:hover td {
     justify-content: flex-end;
 }
 
-/* Party row — inline update */
-.apd-party-update {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    align-items: center;
-}
-
-.apd-party-update input[type="text"] {
-    min-width: 120px;
-    flex: 1 1 140px;
-    max-width: 220px;
-    min-height: 30px;
-    padding: 4px 8px;
-    font-size: 0.8125rem;
-    border-radius: 6px;
-}
-
-.apd-party-update select {
-    min-height: 30px;
-    padding: 4px 8px;
-    font-size: 0.75rem;
-    border-radius: 6px;
-}
-
-/* Email list in party table */
-.apd-email-preview {
-    max-width: 360px;
-    color: var(--muted-strong);
-    font-size: 0.78rem;
-    line-height: 1.35;
-    word-break: break-word;
-}
-
-.apd-empty {
-    text-align: center;
-    padding: 28px 16px !important;
-    color: var(--muted);
-    font-size: 0.875rem;
-}
-
-/* Collapsible more filters (optional drawer) */
-.apd-filter-toggle {
-    display: none;
-}
+/* ------------------------------------------------------------------------- */
+/* Responsive                                                                */
+/* ------------------------------------------------------------------------- */
 
 @media (max-width: 720px) {
     .apd-filter-bar {
@@ -551,35 +845,271 @@ html.theme-dark .apd-table tbody tr:hover td {
     .apd-filter-bar__actions .btn {
         flex: 1;
     }
+
+    .apd-table-scroll {
+        max-height: none;
+    }
+
+    .apd-forms {
+        grid-template-columns: 1fr;
+    }
+
+    .apd-party-update {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .apd-party-update input[type="text"] {
+        max-width: none;
+    }
+
+    .apd-table thead th,
+    .apd-table tbody td {
+        padding: 7px 10px;
+    }
+
+    .apd-email-preview {
+        max-width: 220px;
+    }
 }
 
-.apd-readonly-banner {
-    margin-bottom: 12px;
-}
+/* ------------------------------------------------------------------------- */
+/* Email edit button + modal                                                 */
+/* ------------------------------------------------------------------------- */
 
-.apd--readonly .apd-forms {
-    display: none;
-}
-
-.apd-search-loading {
-    position: absolute;
-    right: 8px;
-    top: 50%;
-    transform: translateY(-50%);
-    font-size: 14px;
-    color: var(--primary);
-    animation: pulse 1s infinite;
-}
-
-@keyframes pulse {
-    0%, 100% { opacity: 0.4; }
-    50% { opacity: 1; }
-}
-
-.apd-filter-bar .input-group {
+.apd-email-cell {
     position: relative;
 }
 
-.apd-filter-bar .input-group input {
-    padding-right: 24px;
+.apd-email-edit-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: none;
+    background: transparent;
+    border-radius: 6px;
+    cursor: pointer;
+    color: #64748b;
+    transition: background 200ms ease, color 200ms ease;
+    margin-top: 4px;
+}
+
+.apd-email-edit-btn:hover {
+    background: rgba(37, 99, 235, 0.08);
+    color: #2563eb;
+}
+
+.apd-email-edit-icon {
+    width: 16px;
+    height: 16px;
+    stroke-width: 2;
+}
+
+.apd-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    z-index: 1000;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 200ms ease, visibility 200ms ease;
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+}
+
+.apd-modal-overlay.is-open {
+    opacity: 1;
+    visibility: visible;
+}
+
+.apd-modal {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--apd-radius);
+    box-shadow: var(--shadow-md);
+    width: 100%;
+    max-width: 520px;
+    max-height: min(85vh, 720px);
+    display: flex;
+    flex-direction: column;
+    transform: translateY(8px) scale(0.98);
+    transition: transform 200ms ease;
+}
+
+.apd-modal-overlay.is-open .apd-modal {
+    transform: translateY(0) scale(1);
+}
+
+.apd-modal__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+}
+
+.apd-modal__header h3 {
+    margin: 0;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--text);
+}
+
+.apd-modal__close {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: transparent;
+    border-radius: 8px;
+    cursor: pointer;
+    color: var(--muted);
+    transition: background 200ms ease, color 200ms ease;
+}
+
+.apd-modal__close:hover {
+    background: var(--panel-soft);
+    color: var(--text);
+}
+
+.apd-modal__body {
+    padding: 16px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.apd-modal__footer {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: flex-end;
+    padding: 12px 16px;
+    border-top: 1px solid var(--border);
+    background: var(--panel-muted);
+    border-radius: 0 0 var(--apd-radius) var(--apd-radius);
+}
+
+.apd-modal__error {
+    color: var(--danger);
+    font-size: 0.8rem;
+    font-weight: 600;
+    min-height: 1.2em;
+}
+
+.apd-email-edit-primary {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.apd-email-edit-primary label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+}
+
+.apd-email-edit-primary input {
+    width: 100%;
+    min-height: 38px;
+    padding: 8px 12px;
+    font-size: 0.875rem;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--panel);
+    color: var(--text);
+    transition: border-color 200ms ease, box-shadow 200ms ease;
+}
+
+.apd-email-edit-primary input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.1);
+}
+
+.apd-email-edit-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.apd-email-edit-list__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.apd-email-edit-list__title {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+}
+
+.apd-email-edit-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    padding: 8px;
+    background: var(--panel-soft);
+    border-radius: 10px;
+    border: 1px solid var(--border);
+}
+
+.apd-email-edit-row input {
+    flex: 1 1 180px;
+    min-width: 0;
+    min-height: 34px;
+    padding: 6px 10px;
+    font-size: 0.8125rem;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--panel);
+    color: var(--text);
+    transition: border-color 200ms ease, box-shadow 200ms ease;
+}
+
+.apd-email-edit-row input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px rgba(29, 78, 216, 0.1);
+}
+
+.apd-email-edit-row .apd-checkbox {
+    flex: 0 0 auto;
+}
+
+.apd-email-edit-remove {
+    flex: 0 0 auto;
+}
+
+@media (max-width: 640px) {
+    .apd-modal {
+        max-width: 100%;
+        max-height: min(90vh, 720px);
+    }
+
+    .apd-modal__footer {
+        flex-direction: column;
+    }
+
+    .apd-modal__footer .btn {
+        width: 100%;
+    }
 }

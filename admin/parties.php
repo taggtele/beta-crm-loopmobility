@@ -109,6 +109,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             redirect('admin/parties.php');
         }
 
+        if ($action === 'delete_party') {
+            $partyId = (int) ($_POST['party_id'] ?? 0);
+            if ($partyId > 0) {
+                party_service_soft_delete($pdo, $partyId);
+                set_flash('success', 'Party deleted.');
+            }
+            redirect('admin/parties.php');
+        }
+
+        if ($action === 'update_party_emails') {
+            $partyId = (int) ($_POST['party_id'] ?? 0);
+            $primaryEmail = trim((string) ($_POST['primary_email'] ?? ''));
+            $ccEmails = $_POST['cc_emails'] ?? [];
+            if (!is_array($ccEmails)) {
+                $ccEmails = [];
+            }
+
+            if ($partyId > 0 && $primaryEmail !== '') {
+                party_service_update_emails($pdo, $partyId, $primaryEmail, $ccEmails);
+                set_flash('success', 'Party emails updated.');
+            }
+
+            $isAjaxRequest = isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
+            if ($isAjaxRequest) {
+                header('Content-Type: application/json; charset=UTF-8');
+                echo json_encode(['success' => true], JSON_UNESCAPED_SLASHES);
+                exit;
+            }
+
+            redirect('admin/parties.php');
+        }
+
         $message = ['type' => 'error', 'text' => 'Invalid party request.'];
     } catch (Throwable $throwable) {
         $message = ['type' => 'error', 'text' => $throwable->getMessage()];
@@ -143,6 +175,7 @@ if ($isAjax) {
                         <th>Party</th>
                         <th>Emails</th>
                         <th>Status</th>
+                        <th>Created</th>
                         <?php if ($canManagePartiesHere): ?>
                         <th style="width: 38%;">Quick update</th>
                         <?php endif; ?>
@@ -155,6 +188,8 @@ if ($isAjax) {
                             <?php
                             $pid = (int) ($party['id'] ?? 0);
                             $mapSearch = rawurlencode((string) ($party['name'] ?? ''));
+                            $createdAt = (string) ($party['created_at'] ?? '');
+                            $createdDisplay = $createdAt !== '' ? date('d M Y H:i', strtotime($createdAt)) : '—';
                             ?>
                             <tr>
                                 <td>
@@ -162,15 +197,25 @@ if ($isAjax) {
                                     <div class="apd-td-muted apd-mono">ID <?php echo e((string) $pid); ?></div>
                                 </td>
                                 <td>
-                                    <div class="apd-email-preview"><?php echo e($party['emails'] ?: '—'); ?></div>
-                                    <?php if (!empty($party['primary_email'])): ?>
-                                        <div class="apd-td-muted">Primary: <span class="apd-mono"><?php echo e((string) $party['primary_email']); ?></span></div>
-                                    <?php endif; ?>
+                                    <div class="apd-email-cell">
+                                        <div class="apd-email-preview"><?php echo e($party['emails'] ?: '—'); ?></div>
+                                        <?php if (!empty($party['primary_email'])): ?>
+                                            <div class="apd-td-muted">Primary: <span class="apd-mono"><?php echo e((string) $party['primary_email']); ?></span></div>
+                                        <?php endif; ?>
+                                        <?php if ($canManagePartiesHere && $pid > 0): ?>
+                                            <button type="button" class="apd-email-edit-btn" data-party-id="<?php echo e((string) $pid); ?>" aria-label="Edit emails">
+                                                <?php echo lucide_icon_svg('pencil', ['size' => 16, 'class' => 'apd-email-edit-icon']); ?>
+                                            </button>
+                                        <?php endif; ?>
+                                    </div>
                                 </td>
                                 <td>
                                     <span class="badge <?php echo strtolower((string) $party['status']) === 'active' ? 'badge-open' : 'badge-medium'; ?>">
                                         <?php echo e(ucfirst((string) $party['status'])); ?>
                                     </span>
+                                </td>
+                                <td>
+                                    <div class="apd-td-muted apd-mono"><?php echo e($createdDisplay); ?></div>
                                 </td>
                                 <?php if ($canManagePartiesHere): ?>
                                 <td>
@@ -184,6 +229,12 @@ if ($isAjax) {
                                             <option value="inactive" <?php echo strtolower((string) $party['status']) === 'inactive' ? 'selected' : ''; ?>>Inactive</option>
                                         </select>
                                         <button type="submit" class="btn btn-secondary btn-sm">Save</button>
+                                    </form>
+                                    <form method="POST" class="apd-party-delete" onsubmit="return confirm('Delete this party?');">
+                                        <?php echo csrf_field(); ?>
+                                        <input type="hidden" name="action" value="delete_party">
+                                        <input type="hidden" name="party_id" value="<?php echo e((string) $pid); ?>">
+                                        <button type="submit" class="btn btn-ghost btn-sm">Delete</button>
                                     </form>
                                 </td>
                                 <?php endif; ?>
@@ -200,7 +251,7 @@ if ($isAjax) {
                         <?php endforeach; ?>
                     <?php else: ?>
                         <tr>
-                            <td colspan="<?php echo $canManagePartiesHere ? 5 : 4; ?>" class="apd-empty">No matching records found</td>
+                            <td colspan="<?php echo $canManagePartiesHere ? 6 : 5; ?>" class="apd-empty">No matching records found</td>
                         </tr>
                     <?php endif; ?>
                 </tbody>
@@ -325,9 +376,10 @@ include __DIR__ . '/../includes/header.php';
                     </div>
                     <div class="input-group">
                         <label for="is_primary">Primary</label>
-                        <label class="checkbox-line">
+                        <label class="apd-checkbox">
                             <input type="checkbox" id="is_primary" name="is_primary">
-                            Set as primary
+                            <span class="apd-checkbox__box" aria-hidden="true"></span>
+                            <span class="apd-checkbox__label">Set as primary</span>
                         </label>
                     </div>
                     <div class="input-group">
@@ -377,6 +429,7 @@ include __DIR__ . '/../includes/header.php';
                         <th>Party</th>
                         <th>Emails</th>
                         <th>Status</th>
+                        <th>Created</th>
                         <?php if ($canManageParties): ?>
                         <th style="width: 38%;">Quick update</th>
                         <?php endif; ?>
@@ -389,6 +442,8 @@ include __DIR__ . '/../includes/header.php';
                             <?php
                             $pid = (int) ($party['id'] ?? 0);
                             $mapSearch = rawurlencode((string) ($party['name'] ?? ''));
+                            $createdAt = (string) ($party['created_at'] ?? '');
+                            $createdDisplay = $createdAt !== '' ? date('d M Y H:i', strtotime($createdAt)) : '—';
                             ?>
                             <tr>
                                 <td>
@@ -396,15 +451,25 @@ include __DIR__ . '/../includes/header.php';
                                     <div class="apd-td-muted apd-mono">ID <?php echo e((string) $pid); ?></div>
                                 </td>
                                 <td>
-                                    <div class="apd-email-preview"><?php echo e($party['emails'] ?: '—'); ?></div>
-                                    <?php if (!empty($party['primary_email'])): ?>
-                                        <div class="apd-td-muted">Primary: <span class="apd-mono"><?php echo e((string) $party['primary_email']); ?></span></div>
-                                    <?php endif; ?>
+                                    <div class="apd-email-cell">
+                                        <div class="apd-email-preview"><?php echo e($party['emails'] ?: '—'); ?></div>
+                                        <?php if (!empty($party['primary_email'])): ?>
+                                            <div class="apd-td-muted">Primary: <span class="apd-mono"><?php echo e((string) $party['primary_email']); ?></span></div>
+                                        <?php endif; ?>
+                                        <?php if ($canManageParties && $pid > 0): ?>
+                                            <button type="button" class="apd-email-edit-btn" data-party-id="<?php echo e((string) $pid); ?>" aria-label="Edit emails">
+                                                <?php echo lucide_icon_svg('pencil', ['size' => 16, 'class' => 'apd-email-edit-icon']); ?>
+                                            </button>
+                                        <?php endif; ?>
+                                    </div>
                                 </td>
                                 <td>
                                     <span class="badge <?php echo strtolower((string) $party['status']) === 'active' ? 'badge-open' : 'badge-medium'; ?>">
                                         <?php echo e(ucfirst((string) $party['status'])); ?>
                                     </span>
+                                </td>
+                                <td>
+                                    <div class="apd-td-muted apd-mono"><?php echo e($createdDisplay); ?></div>
                                 </td>
                                 <?php if ($canManageParties): ?>
                                 <td>
@@ -412,12 +477,18 @@ include __DIR__ . '/../includes/header.php';
                                         <?php echo csrf_field(); ?>
                                         <input type="hidden" name="action" value="update_party">
                                         <input type="hidden" name="party_id" value="<?php echo e((string) $pid); ?>">
-                                        <input type="text" name="party_name" value="<?php echo e($party['name']); ?>" required aria-label="Party name">
-                                        <select name="party_status" aria-label="Party status">
+                                        <input type="text" name="party_name" value="<?php echo e($party['name']); ?>" required aria-label="Party name" placeholder="Party name">
+                                        <select name="party_status" aria-label="Party status" class="apd-status-select">
                                             <option value="active" <?php echo strtolower((string) $party['status']) === 'active' ? 'selected' : ''; ?>>Active</option>
                                             <option value="inactive" <?php echo strtolower((string) $party['status']) === 'inactive' ? 'selected' : ''; ?>>Inactive</option>
                                         </select>
                                         <button type="submit" class="btn btn-secondary btn-sm">Save</button>
+                                    </form>
+                                    <form method="POST" class="apd-party-delete" onsubmit="return confirm('Delete this party?');">
+                                        <?php echo csrf_field(); ?>
+                                        <input type="hidden" name="action" value="delete_party">
+                                        <input type="hidden" name="party_id" value="<?php echo e((string) $pid); ?>">
+                                        <button type="submit" class="btn btn-ghost btn-sm">Delete</button>
                                     </form>
                                 </td>
                                 <?php endif; ?>
@@ -434,7 +505,7 @@ include __DIR__ . '/../includes/header.php';
                         <?php endforeach; ?>
                     <?php else: ?>
                         <tr>
-                            <td colspan="<?php echo $canManageParties ? 5 : 4; ?>" class="apd-empty">No parties match these filters.</td>
+                            <td colspan="<?php echo $canManageParties ? 6 : 5; ?>" class="apd-empty">No parties match these filters.</td>
                         </tr>
                     <?php endif; ?>
                 </tbody>
@@ -573,7 +644,255 @@ include __DIR__ . '/../includes/header.php';
             if (row) row.remove();
         });
     }
-})();
-</script>
+    })();
+    </script>
+
+    <div class="apd-modal-overlay" id="apd-email-modal-overlay" aria-hidden="true">
+        <div class="apd-modal" role="dialog" aria-modal="true" aria-labelledby="apd-email-modal-title">
+            <div class="apd-modal__header">
+                <h3 id="apd-email-modal-title">Edit emails</h3>
+                <button type="button" class="apd-modal__close" id="apd-email-modal-close" aria-label="Close">
+                    <?php echo lucide_icon_svg('x', ['size' => 16]); ?>
+                </button>
+            </div>
+            <div class="apd-modal__body">
+                <?php echo csrf_field(); ?>
+                <div class="apd-email-edit-primary">
+                    <label for="apd-edit-primary-email">Primary email</label>
+                    <input type="email" id="apd-edit-primary-email" placeholder="Primary email">
+                </div>
+                <div class="apd-email-edit-list">
+                    <div class="apd-email-edit-list__header">
+                        <span class="apd-email-edit-list__title">CC emails</span>
+                        <button type="button" class="btn btn-secondary btn-sm" id="apd-edit-add-cc">+ Add email</button>
+                    </div>
+                    <div id="apd-edit-cc-list" class="apd-email-edit-list"></div>
+                </div>
+                <div class="apd-modal__error" id="apd-email-modal-error" role="alert"></div>
+            </div>
+            <div class="apd-modal__footer">
+                <button type="button" class="btn btn-outline btn-sm" id="apd-email-modal-cancel">Cancel</button>
+                <button type="button" class="btn btn-primary btn-sm" id="apd-email-modal-save">
+                    <?php echo lucide_icon_svg('check', ['size' => 16]); ?>
+                    <span>Save</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    (function () {
+        var overlay = document.getElementById('apd-email-modal-overlay');
+        if (!overlay) return;
+
+        var modal = overlay.querySelector('.apd-modal');
+        var closeBtn = document.getElementById('apd-email-modal-close');
+        var cancelBtn = document.getElementById('apd-email-modal-cancel');
+        var saveBtn = document.getElementById('apd-email-modal-save');
+        var primaryInput = document.getElementById('apd-edit-primary-email');
+        var ccList = document.getElementById('apd-edit-cc-list');
+        var addCcBtn = document.getElementById('apd-edit-add-cc');
+        var errorEl = document.getElementById('apd-email-modal-error');
+
+        var currentPartyId = null;
+
+        function showError(message) {
+            if (!errorEl) return;
+            errorEl.textContent = message || '';
+        }
+
+        function openModal(partyId) {
+            currentPartyId = partyId;
+            showError('');
+            primaryInput.value = '';
+            if (ccList) ccList.innerHTML = '';
+
+            var xhr = new XMLHttpRequest();
+            xhr.open('GET', '<?php echo e(url('admin/party_api.php')); ?>?action=get_emails&party_id=' + encodeURIComponent(partyId), true);
+            xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+            xhr.onreadystatechange = function () {
+                if (xhr.readyState !== 4) return;
+                if (xhr.status === 200) {
+                    try {
+                        var data = JSON.parse(xhr.responseText);
+                        if (data && data.ok) {
+                            primaryInput.value = data.primary_email || '';
+                            (data.cc_emails || []).forEach(function (email) {
+                                addCcEmailRow(email);
+                            });
+                            if (!data.cc_emails || data.cc_emails.length === 0) {
+                                addCcEmailRow('');
+                            }
+                        } else {
+                            showError(data && data.error ? data.error : 'Failed to load emails.');
+                        }
+                    } catch (e) {
+                        showError('Invalid response from server.');
+                    }
+                } else {
+                    showError('Failed to load emails.');
+                }
+            };
+            xhr.send();
+
+            overlay.classList.add('is-open');
+            overlay.setAttribute('aria-hidden', 'false');
+            if (primaryInput) primaryInput.focus();
+        }
+
+        function closeModal() {
+            overlay.classList.remove('is-open');
+            overlay.setAttribute('aria-hidden', 'true');
+            currentPartyId = null;
+            showError('');
+        }
+
+        function addCcEmailRow(value) {
+            if (!ccList) return;
+            var row = document.createElement('div');
+            row.className = 'apd-email-edit-row';
+
+            var input = document.createElement('input');
+            input.type = 'email';
+            input.className = 'apd-edit-cc-input';
+            input.placeholder = 'CC email address';
+            input.value = value == null ? '' : String(value);
+
+            var label = document.createElement('label');
+            label.className = 'apd-checkbox';
+            label.title = 'Set as primary';
+
+            var checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.className = 'apd-edit-primary-checkbox';
+
+            var box = document.createElement('span');
+            box.className = 'apd-checkbox__box';
+            box.setAttribute('aria-hidden', 'true');
+
+            var labelText = document.createElement('span');
+            labelText.className = 'apd-checkbox__label';
+            labelText.textContent = 'Primary';
+
+            label.appendChild(checkbox);
+            label.appendChild(box);
+            label.appendChild(labelText);
+
+            var removeBtn = document.createElement('button');
+            removeBtn.type = 'button';
+            removeBtn.className = 'btn btn-ghost btn-sm apd-email-edit-remove';
+            removeBtn.textContent = 'Remove';
+
+            row.appendChild(input);
+            row.appendChild(label);
+            row.appendChild(removeBtn);
+            ccList.appendChild(row);
+        }
+
+        document.addEventListener('click', function (ev) {
+            var btn = ev.target.closest('.apd-email-edit-btn');
+            if (!btn) return;
+            var partyId = btn.getAttribute('data-party-id');
+            if (partyId) {
+                openModal(partyId);
+            }
+        });
+
+        if (addCcBtn) {
+            addCcBtn.addEventListener('click', function () {
+                addCcEmailRow('');
+            });
+        }
+
+        if (ccList) {
+            ccList.addEventListener('click', function (ev) {
+                var rm = ev.target.closest('.apd-email-edit-remove');
+                if (!rm) return;
+                var row = rm.closest('.apd-email-edit-row');
+                if (row) row.remove();
+            });
+        }
+
+        function submitForm() {
+            if (!currentPartyId) return;
+
+            var primaryEmail = (primaryInput && primaryInput.value || '').trim();
+            var ccInputs = ccList ? ccList.querySelectorAll('.apd-edit-cc-input') : [];
+            var ccEmails = [];
+            ccInputs.forEach(function (input) {
+                ccEmails.push((input.value || '').trim());
+            });
+
+            showError('');
+
+            var formData = new FormData();
+            formData.append('action', 'update_party_emails');
+            formData.append('party_id', currentPartyId);
+            formData.append('primary_email', primaryEmail);
+            ccEmails.forEach(function (email, index) {
+                formData.append('cc_emails[' + index + ']', email);
+            });
+
+            var csrfInput = document.querySelector('input[name="csrf_token"]');
+            if (csrfInput) {
+                formData.append('csrf_token', csrfInput.value);
+            }
+
+            var xhr = new XMLHttpRequest();
+            xhr.open('POST', '<?php echo e(url('admin/parties.php')); ?>', true);
+            xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+            xhr.onreadystatechange = function () {
+                if (xhr.readyState !== 4) return;
+                if (xhr.status === 200) {
+                    try {
+                        var data = JSON.parse(xhr.responseText);
+                        if (data && data.success) {
+                            closeModal();
+                            if (window.location.search) {
+                                window.location.reload();
+                            } else {
+                                window.location.reload();
+                            }
+                        } else {
+                            showError(data && data.error ? data.error : 'Failed to update emails.');
+                        }
+                    } catch (e) {
+                        showError('Invalid response from server.');
+                    }
+                } else {
+                    showError('Failed to update emails.');
+                }
+            };
+            xhr.send(formData);
+        }
+
+        if (saveBtn) {
+            saveBtn.addEventListener('click', function (ev) {
+                ev.preventDefault();
+                submitForm();
+            });
+        }
+
+        if (cancelBtn) {
+            cancelBtn.addEventListener('click', closeModal);
+        }
+
+        if (closeBtn) {
+            closeBtn.addEventListener('click', closeModal);
+        }
+
+        overlay.addEventListener('click', function (ev) {
+            if (ev.target === overlay) {
+                closeModal();
+            }
+        });
+
+        document.addEventListener('keydown', function (ev) {
+            if (ev.key === 'Escape' && overlay.classList.contains('is-open')) {
+                closeModal();
+            }
+        });
+    })();
+    </script>
 
 <?php include __DIR__ . '/../includes/footer.php'; ?>

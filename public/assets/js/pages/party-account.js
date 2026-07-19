@@ -27,12 +27,21 @@
         return false;
     }
 
-    function toast(m, k) {
+    function toast(m, k, title) {
         var h = document.getElementById('pa-toasts');
         if (!h) return;
         var d = document.createElement('div');
         d.className = 'pa-toast' + (k === 'e' ? ' pa-toast--error' : '') + (k === 'ok' ? ' pa-toast--success' : '');
-        d.textContent = m;
+        if (title) {
+            var t = document.createElement('div');
+            t.textContent = title;
+            var b = document.createElement('div');
+            b.textContent = m;
+            d.appendChild(t);
+            d.appendChild(b);
+        } else {
+            d.textContent = m;
+        }
         h.appendChild(d);
         setTimeout(function () { d.remove(); }, 3400);
     }
@@ -418,7 +427,14 @@
         if (!r.ok || j.ok === false) {
             if (j.validation && j.errors) {
                 var k = Object.keys(j.errors);
-                if (k.length) toast(k[0] + ': ' + j.errors[k[0]], 'e');
+                if (k.length) {
+                    var errMsg = j.errors[k[0]];
+                    if (String(errMsg || '').indexOf('already associated with another party account') !== -1) {
+                        toast(errMsg, 'e', 'Duplicate Email');
+                    } else {
+                        toast(k[0] + ': ' + errMsg, 'e');
+                    }
+                }
             } else if (r.status === 419 || j.error === 'csrf') {
                 toast('Reload page (csrf)', 'e');
             } else if (j.error === 'party_account_db' || String(j.message || j.error || '').indexOf('party_accounts') >= 0) {
@@ -1059,9 +1075,10 @@ function fill(x) {
         tbody.innerHTML = '';
         currencyLedgers.forEach(function (ledger, idx) {
             var tr = document.createElement('tr');
-            var currencyOptions = (B.currencies || []).map(function (c) {
+            var currencyOptions = '<option value="">—</option>' + (B.currencies || []).map(function (c) {
                 var sel = c === ledger.currency ? ' selected' : '';
-                return '<option value="' + esc(c) + '"' + sel + '>' + esc(c) + '</option>';
+                var disabled = !sel && currencyLedgers.some(function (l, i) { return i !== idx && l.currency === c; }) ? ' disabled' : '';
+                return '<option value="' + esc(c) + '"' + sel + disabled + '>' + esc(c) + '</option>';
             }).join('');
             tr.innerHTML =
                 '<td><select class="pa-currency-select" data-idx="' + idx + '">' + currencyOptions + '</select></td>' +
@@ -1073,14 +1090,7 @@ function fill(x) {
     }
 
     function addCurrencyLedger() {
-        var available = (B.currencies || []).filter(function (c) {
-            return !currencyLedgers.some(function (l) { return l.currency === c; });
-        });
-        if (available.length === 0) {
-            toast('No more currencies available', 'e');
-            return;
-        }
-        currencyLedgers.push({ currency: available[0], opening_balance: '', opening_balance_type: '' });
+        currencyLedgers.push({ currency: '', opening_balance: '', opening_balance_type: '' });
         renderCurrencyLedgers();
     }
 
@@ -1090,9 +1100,6 @@ function fill(x) {
         if (multiCurrency && panel) {
             multiCurrency.addEventListener('change', function () {
                 panel.hidden = !this.checked;
-                if (this.checked && currencyLedgers.length === 0) {
-                    addCurrencyLedger();
-                }
             });
             var addBtn = qs('#pa-add-currency');
             if (addBtn) {
@@ -1114,7 +1121,13 @@ function fill(x) {
                         currencyLedgers[idx].opening_balance_type = e.target.value;
                     }
                     if (e.target.classList.contains('pa-currency-select')) {
+                        if (e.target.value && currencyLedgers.some(function (ledger, i) { return i !== Number(idx) && ledger.currency === e.target.value; })) {
+                            toast('Currency already exists for this party.', 'e');
+                            e.target.value = currencyLedgers[idx].currency || '';
+                            return;
+                        }
                         currencyLedgers[idx].currency = e.target.value;
+                        renderCurrencyLedgers();
                     }
                 });
             }

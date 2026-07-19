@@ -128,7 +128,7 @@ final class PartyAccountRepository
         return $row ?: null;
     }
 
-    /** Non-deleted duplicate check on normalized email */
+    /** Duplicate check on normalized email */
     public function emailTakenByAnother(string $normalizedEmail, ?int $exceptId): bool
     {
         if ($normalizedEmail === '') {
@@ -138,8 +138,7 @@ final class PartyAccountRepository
         if (!party_account_table_exists($this->pdo, 'party_account_emails')) {
             $sql = '
                 SELECT id FROM party_accounts
-                WHERE deleted_at IS NULL
-                AND LOWER(TRIM(party_email)) = :email';
+                WHERE LOWER(TRIM(party_email)) = :email';
             $params = [':email' => $normalizedEmail];
             if ($exceptId !== null) {
                 $sql .= ' AND id != :eid';
@@ -155,8 +154,7 @@ final class PartyAccountRepository
             SELECT pa.id FROM party_accounts pa
             LEFT JOIN party_account_emails pae
                 ON pae.party_account_id = pa.id AND LOWER(TRIM(pae.email)) = :email_join
-            WHERE pa.deleted_at IS NULL
-            AND (
+            WHERE (
                 LOWER(TRIM(pa.party_email)) = :email_col
                 OR pae.id IS NOT NULL
             )';

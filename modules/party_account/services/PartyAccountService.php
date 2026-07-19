@@ -28,8 +28,6 @@ final class PartyAccountService
 
         $isMultiCurrency = !empty($normalized['is_multi_currency']);
         $primaryCurrency = $normalized['primary_currency'] ?? $normalized['currency'] ?? 'INR';
-        $primaryOpening = $normalized['primary_opening_balance'] ?? $normalized['opening_balance'];
-        $primaryOpeningType = $normalized['primary_opening_balance_type'] ?? $normalized['opening_balance_type'];
 
         if ($isMultiCurrency) {
             $normalized['currency'] = null;
@@ -49,20 +47,8 @@ final class PartyAccountService
 
             if ($isMultiCurrency) {
                 $currencies = $normalized['currencies'] ?? [];
-                $hasPrimary = false;
                 foreach ($currencies as $curLedger) {
-                    if (($curLedger['currency'] ?? '') === $primaryCurrency) {
-                        $hasPrimary = true;
-                    }
                     $this->accounts->insertCurrencyLedger($newId, $curLedger);
-                }
-                if (!$hasPrimary && $primaryCurrency && $primaryOpening !== null) {
-                    $signedOpening = ($primaryOpeningType === 'payable') ? -round((float) $primaryOpening, 2) : round((float) $primaryOpening, 2);
-                    $this->accounts->insertCurrencyLedger($newId, [
-                        'currency' => $primaryCurrency,
-                        'opening_balance' => $signedOpening,
-                        'opening_balance_type' => $primaryOpeningType,
-                    ]);
                 }
             }
 
@@ -101,8 +87,6 @@ public function update(int $id, array $input, array $currentUser): void
 
         $isMultiCurrency = !empty($normalized['is_multi_currency']);
         $primaryCurrency = $normalized['primary_currency'] ?? $normalized['currency'] ?? 'INR';
-        $primaryOpening = $normalized['primary_opening_balance'] ?? $normalized['opening_balance'];
-        $primaryOpeningType = $normalized['primary_opening_balance_type'] ?? $normalized['opening_balance_type'];
 
         if ($isMultiCurrency) {
             $normalized['currency'] = null;
@@ -133,31 +117,18 @@ public function update(int $id, array $input, array $currentUser): void
 
             if ($isMultiCurrency) {
                 $currencies = $normalized['currencies'] ?? [];
-                $hasPrimary = false;
                 foreach ($currencies as $curLedger) {
-                    if (($curLedger['currency'] ?? '') === $primaryCurrency) {
-                        $hasPrimary = true;
-                    }
                     if (isset($existingCurrencyMap[$curLedger['currency']])) {
                         $this->accounts->updateCurrencyLedger($id, $curLedger);
                         continue;
                     }
                     $this->accounts->insertCurrencyLedger($id, $curLedger);
                 }
-                if (!$hasPrimary && $primaryCurrency && $primaryOpening !== null) {
-                    $signedOpening = ($primaryOpeningType === 'payable') ? -round((float) $primaryOpening, 2) : round((float) $primaryOpening, 2);
-                    $this->accounts->insertCurrencyLedger($id, [
-                        'currency' => $primaryCurrency,
-                        'opening_balance' => $signedOpening,
-                        'opening_balance_type' => $primaryOpeningType,
-                    ]);
-                }
 
                 $keptCurrencies = [];
                 foreach ($currencies as $curLedger) {
                     $keptCurrencies[$curLedger['currency']] = true;
                 }
-                $keptCurrencies[$primaryCurrency] = true;
                 foreach ($existingCurrencyMap as $currency => $ledger) {
                     if (empty($keptCurrencies[$currency])) {
                         $this->accounts->softDeleteCurrencyLedger($id, $currency);
@@ -294,7 +265,7 @@ public function update(int $id, array $input, array $currentUser): void
                     ? 'party_email'
                     : 'additional_emails';
                 throw new RuntimeException(json_encode([
-                    'errors' => [$field => 'Another active Party Account uses this email.'],
+                    'errors' => [$field => 'The email "' . $emailNorm . '" is already associated with another party account.'],
                 ]));
             }
         }

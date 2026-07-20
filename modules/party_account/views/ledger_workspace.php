@@ -117,6 +117,10 @@
 
         <section id="pl-selected-period" class="pl-selected-period" aria-live="polite"></section>
 
+        <div style="display:flex;justify-content:flex-end;margin-bottom:6px;">
+            <button type="button" class="btn btn-outline btn-sm" id="pl-full-table-btn">Full table</button>
+        </div>
+
         <div class="pl-scroll">
             <table class="pl-table pl-ledger-table">
                 <thead>

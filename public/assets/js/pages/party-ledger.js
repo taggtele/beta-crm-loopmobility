@@ -337,6 +337,17 @@
         qs('#pl-export-pdf').onclick = function () { window.open(exportUrl('pdf'), '_blank'); };
         qs('#pl-st-from').onchange = function () { if (currentPartyId) openLedger(currentPartyId, currentCurrency); };
         qs('#pl-st-to').onchange = function () { if (currentPartyId) openLedger(currentPartyId, currentCurrency); };
+        qs('#pl-full-table-btn').onclick = function () {
+            var panel = qs('.pl-drawer__panel');
+            if (!panel) return;
+            panel.classList.toggle('pl-full-table');
+            var isFull = panel.classList.contains('pl-full-table');
+            this.textContent = isFull ? 'Compact table' : 'Full table';
+            if (isFull) {
+                var table = qs('.pl-ledger-table');
+                if (table) table.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        };
         document.body.addEventListener('click', async function (ev) {
             var view = ev.target.closest('[data-view-ledger]');
             if (view) openLedger(view.getAttribute('data-view-ledger'), view.getAttribute('data-ledger-currency') || '');

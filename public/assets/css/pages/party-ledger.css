@@ -1048,3 +1048,33 @@
         grid-column: span 1;
     }
 }
+
+.pa-toasts {
+    position: fixed;
+    inset: auto 18px 18px auto;
+    z-index: 1200;
+    display: grid;
+    gap: 10px;
+    max-width: 360px;
+}
+
+.pa-toast {
+    padding: 12px;
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    background: var(--panel);
+    box-shadow: var(--shadow-md);
+    font-weight: 600;
+}
+
+.pa-toast--error {
+    border-color: var(--danger);
+    background: var(--danger-soft);
+    color: var(--danger);
+}
+
+.pa-toast--success {
+    border-color: var(--success);
+    background: var(--success-soft);
+    color: var(--success);
+}

@@ -2130,6 +2130,7 @@ textarea {
 .pa-toast--error {
     border-color: var(--danger);
     background: var(--danger-soft);
+    color: var(--danger);
 }
 
 .pa-toast--success {

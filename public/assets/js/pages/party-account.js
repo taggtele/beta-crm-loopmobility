@@ -430,7 +430,7 @@
                 if (k.length) {
                     var errMsg = j.errors[k[0]];
                     if (String(errMsg || '').indexOf('already associated with another party account') !== -1) {
-                        toast(errMsg, 'e', 'Duplicate Email');
+                        toast('Duplicate Email\n\n' + errMsg, 'e');
                     } else {
                         toast(k[0] + ': ' + errMsg, 'e');
                     }

@@ -372,11 +372,39 @@
         });
         qs('#pl-form').addEventListener('submit', async function (ev) {
             ev.preventDefault();
+            var btn = qs('#pl-form').querySelector('button[type="submit"]');
+            if (btn && btn.disabled) return;
+
             var payload = readForm();
-            var j = await api({ action: 'save', payload: payload, expected_currency: payload.ledger_currency || '' });
-            if (!j) return;
-            toast('Transaction saved', 'ok');
-            await openLedger(currentPartyId, currentCurrency);
+
+            if (!payload.invoice_period) {
+                toast('Invoice Period is required.', 'e');
+                return;
+            }
+            var hasValue = payload.customer_invoice_value || payload.vendor_invoice_value ||
+                payload.payment_in || payload.payment_out;
+            if (!hasValue) {
+                toast('Enter at least one amount (Customer/Vendor Invoice Value, Payment In, or Payment Out).', 'e');
+                return;
+            }
+
+            if (btn) {
+                btn.disabled = true;
+                btn.dataset.label = btn.textContent;
+                btn.textContent = 'Saving…';
+            }
+            try {
+                var j = await api({ action: 'save', payload: payload, expected_currency: payload.ledger_currency || '' });
+                if (!j) {
+                    if (btn) { btn.disabled = false; btn.textContent = btn.dataset.label; }
+                    return;
+                }
+                toast('Transaction saved', 'ok');
+                await openLedger(currentPartyId, currentCurrency);
+                if (btn) { btn.disabled = false; btn.textContent = btn.dataset.label; }
+            } catch (e) {
+                if (btn) { btn.disabled = false; btn.textContent = btn.dataset.label; }
+            }
         });
 
         // Arrow controls for period navigator
